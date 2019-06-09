@@ -5,9 +5,6 @@ import torch
 import torch.nn as nn
 from torch.nn import Linear, Sigmoid
 import torch.optim as optimizer
-from torch.autograd import Variable
-from pudb import set_trace
-import torch.nn.functional as F
 
 
 class SLP(nn.Module):
@@ -19,18 +16,14 @@ class SLP(nn.Module):
     def forward(self, x):
         return self.sigmoid(self.fully_connected(x))
 
-    
+
 slp_model = SLP()
 criterion = nn.MSELoss()
-
 
 optimizer = optimizer.SGD(slp_model.parameters(), lr=0.01, momentum=0.5)
 
 dataset = [((-2, -1), 0), ((-2, 1), 1), ((-1, -1.5), 0),
            ((1, 1), 1), ((1.5, -0.5), 1), ((2, -2), 0)]
-
-
-
 
 slp_model.train()
 for epoch in range(1000):
@@ -40,7 +33,6 @@ for epoch in range(1000):
         y = torch.tensor([data[1]],
                          dtype=torch.float, requires_grad=True)
                                        
-        set_trace()
         optimizer.zero_grad()
         y_pred = slp_model(X)
         loss = criterion(y_pred, y)
@@ -48,8 +40,8 @@ for epoch in range(1000):
         optimizer.step()
         print('Epoch {}, loss:{}'.format(epoch, loss))
 
-# set_trace()
-print('Model params:', list(slp_model.parameters()))
+print('Model params:', list(slp_model.parameters()))  # https://graphsketch.com/
+
 # Test
 slp_model.eval()
 out = slp_model(torch.FloatTensor([(-2, -1)]))
@@ -60,4 +52,3 @@ out = slp_model(torch.FloatTensor([(-1, -1.5)]))
 print(out)
 out = slp_model(torch.FloatTensor([(1, 1)]))
 print(out)
-
