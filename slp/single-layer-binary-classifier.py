@@ -13,6 +13,7 @@ class LinearClassifier(nn.Module):
         self.fully_connected = Linear(2, 1)
         self.sigmoid = Sigmoid()
 
+
     def forward(self, x):
         return self.sigmoid(self.fully_connected(x))
 
@@ -51,4 +52,4 @@ for train_data in train_set:
     prob = linear_model(torch.tensor([train_data[0]], dtype=torch.float, requires_grad=False))
     label = 0 if prob < 0.5 else 1
     verdict = 'correct' if label == train_data[1] else 'wrong'
-    print('Data in: {}, out prob {}, class {}: {}'.format(test_data, prob, label, verdict))
+    print('Data in: {}, out prob {}, class {}: {}'.format(train_data, prob, label, verdict))
