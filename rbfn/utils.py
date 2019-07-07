@@ -1,8 +1,18 @@
+import csv
 import torch.nn as nn
-from pudb import set_trace
-from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import os
+
+def get_dataset_labels():
+    dataset = []
+    labels = []
+    with open('io/dataset.csv', 'r') as f:
+        rows = csv.reader(f, delimiter=',')
+        for row in rows:
+            labels.append(int(row[2]) - 1)  # convert label from 1 and 2 to 0 and 1
+            dataset.append((float(row[0]), float(row[1])))
+    return dataset, labels
+
 
 def print_network(net):
     num_params = 0
