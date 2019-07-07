@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from sklearn.cluster import KMeans
-from utils import display
+from utils import display, display_misclassified
 
 torch.manual_seed(777)
 
@@ -98,18 +98,19 @@ class RbfImplement():
 
 dataset = []
 labels = []
-with open('dataset.csv', 'r') as f:
+with open('io/dataset.csv', 'r') as f:
     rows = csv.reader(f, delimiter=',')
     for row in rows:
         labels.append(int(row[2]) - 1)  # convert label from 1 and 2 to 0 and 1
         dataset.append((float(row[0]), float(row[1])))
 
-# display(dataset, labels)
+display(dataset, labels, 'Scatter Plot of Ground Truth')
 rbfn = RbfImplement(lr=1e-2, num_rbf_neurons=100, epochs=20)
 trained_model = rbfn.train(dataset, labels)
-y_preds = rbfn.test(dataset, trained_model)
-print('Accuracy:', sklearn.metrics.accuracy_score(labels, y_preds))
-display(dataset, y_preds)
+predicted_labels = rbfn.test(dataset, trained_model)
+print('Accuracy:', sklearn.metrics.accuracy_score(labels, predicted_labels))
+display(dataset, predicted_labels, 'Scatter Plot of Predicted')
+display_misclassified(dataset, labels, predicted_labels, 'Scatter Plot of Misclassified')
 
 # References
 # http://www.charuaggarwal.net/Chap5slides.pdf
