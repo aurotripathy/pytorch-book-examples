@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from sklearn.cluster import KMeans
-from utils import display, display_misclassified, get_dataset_labels
+from utils import display, display_misclassified, get_dataset_labels, display_loss_accuracy
 
 torch.manual_seed(777)
 
@@ -49,7 +49,6 @@ class RbfImplement():
         self.epochs = epochs
         self.lr = lr
 
-
     def train(self, Xs, ys):
         """
         Training an RBFN consists of selecting three sets of parameters:
@@ -71,6 +70,7 @@ class RbfImplement():
         loss_func = nn.CrossEntropyLoss()  # combines nn.LogSoftmax() and nn.NLLLoss()
 
         model.train()
+        loss_accuracy = []
         for epoch in range(self.epochs):
             epoch_loss = 0
             for X, y in zip(Xs, ys):
@@ -80,10 +80,13 @@ class RbfImplement():
                 y_pred = model(X)           # Forward Propagation
                 loss = loss_func(y_pred, y) # compute loss
                 epoch_loss += loss
-                loss.backward()                  # compute gradient
+                loss.backward()             # compute gradient
                 optimizer.step()            # gradient update
-            print('Avg loss in epoch:', epoch_loss / len(Xs))
-        return model
+            avg_loss = epoch_loss / len(Xs)
+            accuracy = sklearn.metrics.accuracy_score(ys, rbfn.test(dataset, model))
+            print('Avg loss: {:.4f}, Accuracy: {:.4f}:'.format(avg_loss, accuracy))
+            loss_accuracy.append((avg_loss, accuracy))
+        return model, loss_accuracy
 
     def test(self, Xs, model):
         model.eval()
@@ -98,11 +101,11 @@ class RbfImplement():
 dataset, labels = get_dataset_labels()
 display(dataset, labels, 'Scatter Plot of Ground Truth')
 rbfn = RbfImplement(lr=1e-2, num_rbf_neurons=100, epochs=20)
-trained_model = rbfn.train(dataset, labels)
+trained_model, loss_accuracy = rbfn.train(dataset, labels)
 predicted_labels = rbfn.test(dataset, trained_model)
 print('Accuracy:', sklearn.metrics.accuracy_score(labels, predicted_labels))
 display(dataset, predicted_labels, 'Scatter Plot of Predicted')
 display_misclassified(dataset, labels, predicted_labels, 'Scatter Plot of Misclassified')
+display_loss_accuracy(loss_accuracy, 'Loss Accuracy Plot')
 
-# References
-# http://www.charuaggarwal.net/Chap5slides.pdf
+# References: http://www.charuaggarwal.net/Chap5slides.pdf
