@@ -60,4 +60,4 @@ for train_data in train_set:
     prob = model(torch.tensor([train_data[0]], dtype=torch.float, requires_grad=False))
     label = 0 if prob < 0.5 else 1
     verdict = 'correct' if label == train_data[1] else 'wrong'
-    print('Data in: {}, Actual Class: {} Out Prob: {}, Predicted Class {}: {}'.format(train_data, train_data[1], prob, label, verdict))
+    print('Data in: {}, Actual Class: {} Out Score: {}, Predicted Class {}: {}'.format(train_data, train_data[1], prob, label, verdict))
