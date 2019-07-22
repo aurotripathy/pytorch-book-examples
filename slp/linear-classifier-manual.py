@@ -1,6 +1,5 @@
 """
-ADDED Manual
-Binary Classifier (Linear layer followed by logistic avtivation)
+A binary classifier with a lingle linear layer
 """
 import torch
 import torch.nn as nn
@@ -35,8 +34,8 @@ display_points([sample[0] for sample in train_set],
                [sample[1] for sample in train_set], "Data")
 
 set_trace()
-manual_W = model.fully_connected.weight.data.numpy()[0].copy()  # [np.random.randn(), np.random.randn()]
-manual_b = model.fully_connected.bias.data.numpy()[0].copy()  # np.random.randn()
+manual_W = model.fully_connected.weight.data.numpy()[0].copy()  # init manual model the same as PyTorch
+manual_b = model.fully_connected.bias.data.numpy()[0].copy()  # init manual model the same as PyTorch
 
 model.train()
 
@@ -63,17 +62,17 @@ for epoch in range(50):
         manual_loss = manual_error ** 2
         manual_epoch_loss += manual_loss
 
-        # Computes gradients for both W and b parameters
-        W_grad = -2 * (np.array(train_data[0]) * manual_error).mean()
-        b_grad = -2 * manual_error.mean()
+        # Computes gradients for W and b parameters
+        manual_W_grad = -2 * (np.array(train_data[0]) * manual_error).mean()
+        manual_b_grad = -2 * manual_error.mean()
        
         # Updates parameters using gradients and the learning rate
-        manual_W -= lr * W_grad
-        manual_b -= lr * b_grad
+        manual_W -= lr * manual_W_grad
+        manual_b -= lr * manual_b_grad
         
     loss_over_epochs.append(epoch_loss)
     manual_loss_over_epochs.append(manual_epoch_loss)
-    print('Epoch {}, Pytorch Epoch loss:{}, Manual Epoch loss:{}'.format(epoch, epoch_loss, manual_epoch_loss))
+    print('Epoch {}, Pytorch loss:{}, Manual loss:{}'.format(epoch, epoch_loss, manual_epoch_loss))
 
 
 display_loss(manual_loss_over_epochs, "Loss Plot Manual Calculations")
@@ -87,6 +86,13 @@ for test_data in test_set:
     predicted_class = '0' if out < 0.5 else '1'
     print('Input: {}, Out Prob: {}, Predicted Class {}'.format(test_data, out, predicted_class))
 
+for test_data in test_set:
+    manual_y_pred = np.dot(test_data, manual_W) + manual_b
+    manual_predicted_class = '0' if manual_y_pred < 0.5 else '1'
+    print('Manual: Input: {}, Out Prob: {}, Predicted Class {}'.format(test_data,
+                                                                       manual_y_pred,
+                                                                       manual_predicted_class))
+    
 # Test on training data
 for train_data in train_set:
     prob = model(torch.tensor([train_data[0]], dtype=torch.float, requires_grad=False))
