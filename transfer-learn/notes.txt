@@ -3,3 +3,5 @@ https://tiny-imagenet.herokuapp.com/
 address this topic
 
 https://discuss.pytorch.org/t/how-to-change-the-input-size-for-pretrained-resnet-model/14625
+
+https://discuss.pytorch.org/t/how-do-i-feed-higher-res-images-to-model-zoo-models/1442
