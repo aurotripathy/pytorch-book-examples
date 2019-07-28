@@ -1,1 +1,5 @@
 https://tiny-imagenet.herokuapp.com/
+
+address this topic
+
+https://discuss.pytorch.org/t/how-to-change-the-input-size-for-pretrained-resnet-model/14625
