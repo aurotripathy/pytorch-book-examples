@@ -16,7 +16,7 @@ from utils import imshow, load_data
 from pudb import set_trace
 
 
-def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
+def train_val(model, criterion, optimizer, scheduler, num_epochs=25):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -110,6 +110,33 @@ def visualize_model(model, num_images=6):
                     return
         model.train(mode=was_training)
 
+def fine_tune(mode):
+    criterion = nn.CrossEntropyLoss()
+    model = models.resnet18(pretrained=True)  # pretrained=True will download its weights
+
+    num_in_features_last = model.fc.in_features
+    if mode == 'learn_all_layers':
+        model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
+        # Note, parameters in all layer are being optimized
+        optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    elif mode == 'learn_only_fc_layer':
+        set_trace()
+        for param in model.parameters():
+            param.requires_grad = False
+            model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
+        # Note, only parameters of final layer are being optimized unlike before.
+        optimizer = optim.SGD(model.fc.parameters(), lr=0.001, momentum=0.9)
+    else:
+        print('Unknown training mode')
+        exit(1)
+
+    model = model.to(device)
+
+    # Decay LR by a factor of 0.1 every 7 epochs
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+
+    model = train_val(model, criterion, optimizer, exp_lr_scheduler, num_epochs=25)
+    return model
 
 plt.ion()   # interactive mode
 
@@ -117,59 +144,15 @@ dataloaders, dataset_sizes, class_names = load_data('hymenoptera_data')
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# Get a batch of training data
+# Get a batch of training data and show it in a grid
 inputs, classes = next(iter(dataloaders['train']))
-set_trace()
-
-# Make a grid from batch
 out = torchvision.utils.make_grid(inputs)
-
 imshow(out, title=[class_names[x] for x in classes])
 
-criterion = nn.CrossEntropyLoss()
-
-# Training approach 1 - Finetume all layers
-model_finetune = models.resnet18(pretrained=True)  # pretrained=True will download its weights
-num_features = model_finetune.fc.in_features
-model_finetune.fc = nn.Linear(num_features, 2)  # make last layer a binary classifier
-
-model_finetune = model_finetune.to(device)
-
-# Note, parameters in all layer are being optimized
-optimizer = optim.SGD(model_finetune.parameters(), lr=0.001, momentum=0.9)
-
-# Decay LR by a factor of 0.1 every 7 epochs
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
-
-# Train and evaluate
-#It should take around 15-25 min on CPU. On GPU though, it takes less than a minute.
-
-model_finetune = train_model(model_finetune, criterion, optimizer, exp_lr_scheduler,
-                             num_epochs=25)
-
-visualize_model(model_finetune)
-
-# Training approach 2 - Finetuning only the fully-conncted layer, all pther layers frozen
-model_locked_features = torchvision.models.resnet18(pretrained=True)
-for param in model_locked_features.parameters():
-    param.requires_grad = False
-
-# Parameters of newly constructed modules have requires_grad=True by default
-num_ftrs = model_locked_features.fc.in_features
-model_locked_features.fc = nn.Linear(num_ftrs, 2)
-
-model_locked_features = model_locked_features.to(device)
-
-# Note, only parameters of final layer are being optimized unlike before.
-optimizer = optim.SGD(model_locked_features.fc.parameters(), lr=0.001, momentum=0.9)
-
-# Decay LR by a factor of 0.1 every 7 epochs
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
-
-model_locked_features = train_model(model_locked_features, criterion, optimizer,
-                         exp_lr_scheduler, num_epochs=25)
-
-visualize_model(model_locked_features)
+model = fine_tune('learn_all_layers')
+visualize_model(model)
+model = fine_tune('learn_only_fc_layer')
+visualize_model(model)
 
 plt.ioff()
 plt.show()
