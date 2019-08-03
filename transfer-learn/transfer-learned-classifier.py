@@ -17,7 +17,7 @@ from pudb import set_trace
 
 
 def train_val(model, criterion, optimizer, scheduler, num_epochs=25):
-    since = time.time()
+    start_time = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
@@ -45,10 +45,9 @@ def train_val(model, criterion, optimizer, scheduler, num_epochs=25):
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
-                # forward
                 # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs)
+                    outputs = model(inputs)  # forward pass
                     _, preds = torch.max(outputs, 1)
                     loss = criterion(outputs, labels)
 
@@ -57,7 +56,6 @@ def train_val(model, criterion, optimizer, scheduler, num_epochs=25):
                         loss.backward()
                         optimizer.step()
 
-                # statistics
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
@@ -74,7 +72,7 @@ def train_val(model, criterion, optimizer, scheduler, num_epochs=25):
 
         print()
 
-    time_elapsed = time.time() - since
+    time_elapsed = time.time() - start_time
     print('Training complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
     print('Best val Acc: {:4f}'.format(best_acc))
@@ -144,7 +142,7 @@ dataloaders, dataset_sizes, class_names = load_data('hymenoptera_data')
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# Get a batch of training data and show it in a grid
+# Get a batch of training data and show it
 inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
 imshow(out, title=[class_names[x] for x in classes])
