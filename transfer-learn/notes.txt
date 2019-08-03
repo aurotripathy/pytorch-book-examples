@@ -5,3 +5,6 @@ address this topic
 https://discuss.pytorch.org/t/how-to-change-the-input-size-for-pretrained-resnet-model/14625
 
 https://discuss.pytorch.org/t/how-do-i-feed-higher-res-images-to-model-zoo-models/1442
+
+-- use this dataset
+https://www.kaggle.com/theimgclist/multiclass-food-classification-using-tensorflow
