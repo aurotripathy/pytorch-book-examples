@@ -1,5 +1,5 @@
 """
-Binary Classifier (Linear layer followed by logistic avtivation)
+Binary Classifier with Linear layer and Back Propagation of Errors
 """
 import torch
 import torch.nn as nn
