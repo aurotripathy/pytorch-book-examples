@@ -60,7 +60,7 @@ b = model.fully_connected.bias.data.numpy()[0]
 
 plot_points_line_slope_intercept([sample[0] for sample in train_set],
                                  [sample[1] for sample in train_set],
-                                 -w1/w2, -b, 'Dividing Line')
+                                 -w1/w2, -b, 'Dividing Line Back Propagation')
 
 
     
