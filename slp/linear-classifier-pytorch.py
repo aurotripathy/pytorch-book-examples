@@ -35,11 +35,11 @@ for epoch in range(50):
         X = torch.tensor([train_data[0]], dtype=torch.float, requires_grad=True)
         y = torch.tensor([train_data[1]], dtype=torch.float, requires_grad=True)
 
-        optimizer.zero_grad()
-        y_pred = model(X)
-        loss = criterion(torch.squeeze(y_pred, 1), y)
-        loss.backward()
-        optimizer.step()
+        optimizer.zero_grad() # Zero out for each batch
+        y_pred = model(X)     # Forward Propagation
+        loss = criterion(torch.squeeze(y_pred, 1), y)  # Compute loss
+        loss.backward()       # Compute gradient
+        optimizer.step()      # Update model paramters
         epoch_loss += loss
 
     loss_over_epochs.append(epoch_loss)
