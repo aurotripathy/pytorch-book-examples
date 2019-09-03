@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Linear
 import torch.optim as optimizer
-from utils import display_loss, display_points
+from utils import display_loss, display_points, plot_points_line_slope_intercept
 
 class LinearClassifier(nn.Module):
     """ One Linear layer """
@@ -55,6 +55,15 @@ for test_data in test_set:
     out = model(torch.tensor([test_data], dtype=torch.float, requires_grad=False))
     print('Data in: {}, Out Prob: {}, Predicted Class {}'.format(test_data, out, '0' if out < 0.5 else '1'))
 
+(w1, w2) = model.fully_connected.weight.data.numpy()[0]
+b = model.fully_connected.bias.data.numpy()[0]
+
+plot_points_line_slope_intercept([sample[0] for sample in train_set],
+                                 [sample[1] for sample in train_set],
+                                 -w1/w2, -b, 'Dividing Line')
+
+
+    
 # Test on training data
 for train_data in train_set:
     prob = model(torch.tensor([train_data[0]], dtype=torch.float, requires_grad=False))
