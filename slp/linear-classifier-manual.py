@@ -1,5 +1,6 @@
 """
-A binary classifier with a lingle linear layer
+A binary classifier with a single linear layer.
+Model paramters estimated by back prop as well as manually.
 """
 import torch
 import torch.nn as nn
