@@ -6,7 +6,6 @@ import torch.nn as nn
 from torch.nn import Linear
 import torch.optim as optimizer
 from utils import display_loss, display_points, plot_points_line_slope_intercept
-from pudb import set_trace
 import numpy as np
 
 torch.manual_seed(0)
@@ -84,7 +83,6 @@ plot_points_line_slope_intercept([sample[0] for sample in train_set],
                                  [sample[1] for sample in train_set],
                                  -w1/w2, -b, 'Dividing Line')
 
-set_trace()
 print('Model params (computed manually):', 'W', manual_W, 'b', manual_b)
 plot_points_line_slope_intercept([sample[0] for sample in train_set],
                                  [sample[1] for sample in train_set],
