@@ -39,7 +39,7 @@ for epoch in range(50):
         y_pred = model(X)     # Forward Propagation
         loss = criterion(torch.squeeze(y_pred, 1), y)  # Compute loss
         loss.backward()       # Compute gradient
-        optimizer.step()      # Update model paramters
+        optimizer.step()      # Update model parameters
         epoch_loss += loss
 
     loss_over_epochs.append(epoch_loss)
@@ -53,15 +53,16 @@ test_set = [(0.5, 0.5), (1.5, 1.5), (2, -1), (-3, -3)]
 model.eval()
 for test_data in test_set:
     out = model(torch.tensor([test_data], dtype=torch.float, requires_grad=False))
-    print('Data in: {}, Out Prob: {}, Predicted Class {}'.format(test_data, out, '0' if out < 0.5 else '1'))
+    print('Data in: {}, Out Prob: {}, Predicted Class {}'.format(test_data,
+                                                                 out,
+                                                                 '0' if out < 0.5 else '1'))
 
 (w1, w2) = model.fully_connected.weight.data.numpy()[0]
 b = model.fully_connected.bias.data.numpy()[0]
 
 plot_points_line_slope_intercept([sample[0] for sample in train_set],
                                  [sample[1] for sample in train_set],
-                                 -w1/w2, -b, 'Dividing Line Back Propagation')
-
+                                 -w1/w2, -b, 'Decision Boundary')
 
     
 # Test on training data
