@@ -53,9 +53,10 @@ test_set = [(0.5, 0.5), (1.5, 1.5), (2, -1), (-3, -3)]
 model.eval()
 for test_data in test_set:
     out = model(torch.tensor([test_data], dtype=torch.float, requires_grad=False))
-    print('Data in: {}, Out Prob: {}, Predicted Class {}'.format(test_data,
-                                                                 out,
-                                                                 '0' if out < 0.5 else '1'))
+    pred_class = '0' if out < 0.5 else '1'
+    print('Data in:{}, Out Prob:{}, Predicted Class{}'.format(test_data,
+                                                              out,
+                                                              pred_class))
 
 (w1, w2) = model.fully_connected.weight.data.numpy()[0]
 b = model.fully_connected.bias.data.numpy()[0]
@@ -70,4 +71,8 @@ for train_data in train_set:
     prob = model(torch.tensor([train_data[0]], dtype=torch.float, requires_grad=False))
     label = 0 if prob < 0.5 else 1
     verdict = 'correct' if label == train_data[1] else 'wrong'
-    print('Data in: {}, Actual Class: {} Out Score: {}, Predicted Class {}: {}'.format(train_data, train_data[1], prob, label, verdict))
+    print('Data in:{}, Actual Class:{} Out Score:{}, Predicted Class{}: {}'.format(train_data,
+                                                                                   train_data[1],
+                                                                                   prob,
+                                                                                   label,
+                                                                                   verdict))
