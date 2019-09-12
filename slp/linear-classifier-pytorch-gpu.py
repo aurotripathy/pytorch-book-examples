@@ -18,11 +18,8 @@ class LinearClassifier(nn.Module):
         return self.fully_connected(x)  # WX + b
 
 
-if torch.cuda.is_available():
-	device = "cuda:0"
-else:
-	device = "cpu"
-    
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
 model = LinearClassifier().to(device)
 criterion = nn.MSELoss()
 optimizer = optimizer.SGD(model.parameters(), lr=0.01, momentum=0.5)
