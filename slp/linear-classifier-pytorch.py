@@ -54,7 +54,7 @@ model.eval()
 for test_data in test_set:
     out = model(torch.tensor([test_data], dtype=torch.float, requires_grad=False))
     pred_class = '0' if out < 0.5 else '1'
-    print('Data in:{}, Out Prob:{}, Predicted Class{}'.format(test_data,
+    print('Data in:{}, Out Prob:{}, Predicted Class:{}'.format(test_data,
                                                               out,
                                                               pred_class))
 
