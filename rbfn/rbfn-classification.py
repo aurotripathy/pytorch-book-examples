@@ -26,9 +26,9 @@ class RbfNet(nn.Module):
     def kernel_func(self, X):
         """
         Gaussian radial basis function
-        X is the input
-        centers is the cluster centers
-        sigma is the std deviation
+        - X is the input
+        - centers is the cluster centers
+        - sigma is the std deviation
         """
         h = np.zeros(self.num_centers)
         for i in range(self.num_centers):
@@ -52,6 +52,7 @@ class RbfImplement():
     def train(self, Xs, ys):
         """
         Training an RBFN consists of selecting three sets of parameters:
+        The first two are unsupervised and the last is supervised.
         1. The prototypes (centers). Unsupervised
         2. Beta coefficient for each of the RBF neurons. Unsupervised
         3. The matrix of output weights between the RBF neurons and the output nodes. Supervised.
