@@ -118,7 +118,6 @@ def fine_tune(mode):
         # Note, parameters in all layer are being optimized
         optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     elif mode == 'learn_only_fc_layer':
-        set_trace()
         for param in model.parameters():
             param.requires_grad = False
             model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
@@ -127,7 +126,8 @@ def fine_tune(mode):
     else:
         print('Unknown training mode')
         exit(1)
-
+    print(model)
+    print([[param[0], param[1].shape] for param in model.named_parameters()])
     model = model.to(device)
 
     # Decay LR by a factor of 0.1 every 7 epochs
@@ -138,7 +138,8 @@ def fine_tune(mode):
 
 plt.ion()   # interactive mode
 
-dataloaders, dataset_sizes, class_names = load_data('hymenoptera_data')
+# dataloaders, dataset_sizes, class_names = load_data('hymenoptera_data')
+dataloaders, dataset_sizes, class_names = load_data('supermen')
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
