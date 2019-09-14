@@ -1,11 +1,13 @@
 import cv2
 import os
 import glob
-from sklearn.model_selection import train_test_split
 import random
 from shutil import copyfile
 import sys
 from sys import exit
+from os.path import join, basename, dirname, exists
+
+root_folder = 'supermen'
 
 def extract_frames(movie_file):
     folder = movie_file.split('/')[-1].split('.')[0]
@@ -17,16 +19,16 @@ def extract_frames(movie_file):
     else:
         exit(2)
 
-    dir_path = os.path.join('supermen', folder, 'all')
+    dir_path = os.path.join(root_folder, folder, 'all')
 
-    if not os.path.exists(dir_path):
+    if not exists(dir_path):
         os.makedirs(dir_path)
     
     count = 0
     while success:
-        path = os.path.join(dir_path, 'frame{}.jpg'.format(count))
+        path = join(dir_path, 'frame{}.jpg'.format(count))
         cv2.imwrite(path, cropped_image)
-        vidcap.set(cv2.CAP_PROP_POS_MSEC, (count * 500))    # every half sec
+        vidcap.set(cv2.CAP_PROP_POS_MSEC, (count * 250))    # every half sec
         success, image = vidcap.read()
         if success:
             cropped_image = image[:, 75:375, :]
@@ -39,7 +41,7 @@ def extract_frames(movie_file):
 
 def copy_files(source_filenames, dest_path):
     for source_file in source_filenames:
-        dest_file = os.path.join(dest_path, os.path.basename(source_file))
+        dest_file = join(dest_path, basename(source_file))
 
         print(source_file, dest_file)
         
@@ -67,16 +69,16 @@ def create_train_val_test(all_folder):
     print('Total val files', len(val_filenames))
     test_filenames = image_files[split_2:]
     
-    train_path = os.path.join(os.path.dirname(all_folder), 'train')
-    val_path = os.path.join(os.path.dirname(all_folder), 'val')
+    train_path = join(root_folder, 'train', basename(dirname(all_folder)))
+    val_path = join(root_folder, 'val', basename(dirname(all_folder)))
     print(train_path)
     print(val_path)
 
-    if not os.path.exists(train_path):
+    if not exists(train_path):
         os.makedirs(train_path)
     copy_files(train_filenames, train_path)
 
-    if not os.path.exists(val_path):
+    if not exists(val_path):
         os.makedirs(val_path)
     copy_files(val_filenames, val_path)
 
