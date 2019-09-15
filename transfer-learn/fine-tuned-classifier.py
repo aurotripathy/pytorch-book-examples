@@ -139,7 +139,7 @@ def fine_tune(mode):
 plt.ion()   # interactive mode
 
 # dataloaders, dataset_sizes, class_names = load_data('hymenoptera_data')
-dataloaders, dataset_sizes, class_names = load_data('supermen')
+dataloaders, dataset_sizes, class_names = load_data('superbeings')
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
