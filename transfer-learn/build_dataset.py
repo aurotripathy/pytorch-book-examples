@@ -7,7 +7,7 @@ import sys
 from sys import exit
 from os.path import join, basename, dirname, exists
 
-root_folder = 'supermen'
+root_folder = 'superbeings'
 
 def extract_frames(movie_file):
     folder = movie_file.split('/')[-1].split('.')[0]
@@ -15,7 +15,8 @@ def extract_frames(movie_file):
     success, image = vidcap.read()
 
     if success:
-        cropped_image = image[:, 75:375, :]
+        # cropped_image = image[:, 75:375, :]
+        cropped_image = image[:, :, :]
     else:
         exit(2)
 
@@ -28,10 +29,11 @@ def extract_frames(movie_file):
     while success:
         path = join(dir_path, 'frame{}.jpg'.format(count))
         cv2.imwrite(path, cropped_image)
-        vidcap.set(cv2.CAP_PROP_POS_MSEC, (count * 250))    # every half sec
+        vidcap.set(cv2.CAP_PROP_POS_MSEC, (count * 250))  # every 1/4 sec
         success, image = vidcap.read()
         if success:
-            cropped_image = image[:, 75:375, :]
+            # cropped_image = image[:, 75:375, :]
+            cropped_image = image[:, :, :]
         else:
             break
 
@@ -43,7 +45,7 @@ def copy_files(source_filenames, dest_path):
     for source_file in source_filenames:
         dest_file = join(dest_path, basename(source_file))
 
-        print(source_file, dest_file)
+        # print(source_file, dest_file)
         
         try:
             copyfile(source_file, dest_file)
@@ -61,7 +63,7 @@ def create_train_val_test(all_folder):
         image_files.append(image_file)
     random.shuffle(image_files)
     
-    split_1 = int(0.8 * len(image_files))
+    split_1 = int(0.7 * len(image_files))
     split_2 = int(0.9 * len(image_files))
     train_filenames = image_files[:split_1]
     print('Total train files', len(train_filenames))
@@ -83,8 +85,8 @@ def create_train_val_test(all_folder):
     copy_files(val_filenames, val_path)
 
     
-dir_path = extract_frames('videos/batman.MOV')
-create_train_val_test(dir_path)
 dir_path = extract_frames('videos/superman.MOV')
+create_train_val_test(dir_path)
+dir_path = extract_frames('videos/catwoman.MOV')
 create_train_val_test(dir_path)
 
