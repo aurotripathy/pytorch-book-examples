@@ -14,10 +14,7 @@ def extract_frames(movie_file):
     vidcap = cv2.VideoCapture(movie_file)
     success, image = vidcap.read()
 
-    if success:
-        # cropped_image = image[:, 75:375, :]
-        cropped_image = image[:, :, :]
-    else:
+    if not success:
         exit(2)
 
     dir_path = os.path.join(root_folder, folder, 'all')
@@ -28,13 +25,11 @@ def extract_frames(movie_file):
     count = 0
     while success:
         path = join(dir_path, 'frame{}.jpg'.format(count))
-        cv2.imwrite(path, cropped_image)
+        cv2.imwrite(path, image)
         vidcap.set(cv2.CAP_PROP_POS_MSEC, (count * 250))  # every 1/4 sec
         success, image = vidcap.read()
-        if success:
-            # cropped_image = image[:, 75:375, :]
-            cropped_image = image[:, :, :]
-        else:
+
+        if not success:
             break
 
         count += 1
@@ -45,16 +40,14 @@ def copy_files(source_filenames, dest_path):
     for source_file in source_filenames:
         dest_file = join(dest_path, basename(source_file))
 
-        # print(source_file, dest_file)
-        
         try:
             copyfile(source_file, dest_file)
         except IOError as e:
             print("Unable to copy file. %s" % e)
-            exit(1)
+            exit(2)
         except:
             print("Unexpected error:", sys.exc_info())
-            exit(1)
+            exit(2)
     
 
 def create_train_val_test(all_folder):
@@ -71,8 +64,10 @@ def create_train_val_test(all_folder):
     print('Total val files', len(val_filenames))
     test_filenames = image_files[split_2:]
     
-    train_path = join(root_folder, 'train', basename(dirname(all_folder)))
-    val_path = join(root_folder, 'val', basename(dirname(all_folder)))
+    train_path = join(root_folder, 'train',
+                      basename(dirname(all_folder)))
+    val_path = join(root_folder, 'val',
+                    basename(dirname(all_folder)))
     print(train_path)
     print(val_path)
 
