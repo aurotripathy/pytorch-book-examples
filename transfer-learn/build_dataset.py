@@ -85,3 +85,18 @@ create_train_val_test(dir_path)
 dir_path = extract_frames('videos/catwoman.MOV')
 create_train_val_test(dir_path)
 
+
+"""
+output end up with the followinog structure
+superbeings/
+├── catwoman
+│   └── all
+├── superman
+│   └── all
+├── train
+│   ├── catwoman
+│   └── superman
+└── val
+    ├── catwoman
+    └── superman
+"""
