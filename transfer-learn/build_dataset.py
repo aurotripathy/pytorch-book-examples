@@ -63,13 +63,17 @@ def create_train_val_test(all_folder):
     val_filenames = image_files[split_1:split_2]
     print('Total val files', len(val_filenames))
     test_filenames = image_files[split_2:]
+    print('Total test files', len(test_filenames))
     
     train_path = join(root_folder, 'train',
                       basename(dirname(all_folder)))
     val_path = join(root_folder, 'val',
                     basename(dirname(all_folder)))
+    test_path = join(root_folder, 'test',
+                    basename(dirname(all_folder)))
     print(train_path)
     print(val_path)
+    print(test_path)
 
     if not exists(train_path):
         os.makedirs(train_path)
@@ -78,6 +82,10 @@ def create_train_val_test(all_folder):
     if not exists(val_path):
         os.makedirs(val_path)
     copy_files(val_filenames, val_path)
+
+    if not exists(test_path):
+        os.makedirs(test_path)
+    copy_files(test_filenames, test_path)
 
     
 dir_path = extract_frames('videos/superman.MOV')
