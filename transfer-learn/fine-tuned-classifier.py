@@ -13,7 +13,6 @@ from torchvision import models
 import time
 import copy
 from utils import imshow, load_data
-from pudb import set_trace
 
 
 def train_val(model, criterion, optimizer, scheduler, num_epochs=25):
@@ -42,8 +41,7 @@ def train_val(model, criterion, optimizer, scheduler, num_epochs=25):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
-                # zero the parameter gradients
-                optimizer.zero_grad()
+                optimizer.zero_grad()  # zero out gradients
 
                 # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
@@ -82,14 +80,14 @@ def train_val(model, criterion, optimizer, scheduler, num_epochs=25):
     return model
 
 
-def visualize_model(model, num_images=6):
+def test_model(model, num_images=6):
     was_training = model.training
     model.eval()
     images_so_far = 0
     fig = plt.figure()
 
     with torch.no_grad():
-        for i, (inputs, labels) in enumerate(dataloaders['val']):
+        for i, (inputs, labels) in enumerate(dataloaders['test']):
             inputs = inputs.to(device)
             labels = labels.to(device)
 
@@ -108,26 +106,30 @@ def visualize_model(model, num_images=6):
                     return
         model.train(mode=was_training)
 
+
+
 def fine_tune(mode):
     criterion = nn.CrossEntropyLoss()
     model = models.resnet18(pretrained=True)  # pretrained=True will download its weights
 
     num_in_features_last = model.fc.in_features
-    if mode == 'learn_all_layers':
+    
+    if mode == 'all_layers':  # fine-tune all layers
         model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
         # Note, parameters in all layer are being optimized
         optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    elif mode == 'learn_only_fc_layer':
+    elif mode == 'only_fc_layer':
         for param in model.parameters():
             param.requires_grad = False
-            model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
-        # Note, only parameters of final layer are being optimized unlike before.
+            
+        # Newly constructed module has requires_grad=True by default
+        model.fc = nn.Linear(num_in_features_last, 2)
+        
+        # Note, only parameters of final layer are being optimized
         optimizer = optim.SGD(model.fc.parameters(), lr=0.001, momentum=0.9)
     else:
         print('Unknown training mode')
-        exit(1)
-    print(model)
-    print([[param[0], param[1].shape] for param in model.named_parameters()])
+        exit(2)
     model = model.to(device)
 
     # Decay LR by a factor of 0.1 every 7 epochs
@@ -138,7 +140,6 @@ def fine_tune(mode):
 
 plt.ion()   # interactive mode
 
-# dataloaders, dataset_sizes, class_names = load_data('hymenoptera_data')
 dataloaders, dataset_sizes, class_names = load_data('superbeings')
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -148,10 +149,10 @@ inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
 imshow(out, title=[class_names[x] for x in classes])
 
-model = fine_tune('learn_all_layers')
-visualize_model(model)
-model = fine_tune('learn_only_fc_layer')
-visualize_model(model)
+model = fine_tune('all_layers')
+test_model(model)
+model = fine_tune('only_fc_layer')
+test_model(model)
 
 plt.ioff()
 plt.show()
