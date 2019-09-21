@@ -62,13 +62,11 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
             print('{} Loss: {:.4f} Acc: {:.4f}'.format(
                 phase, epoch_loss, epoch_acc))
 
-            # deep copy the model
             if phase == 'val' and epoch_acc > best_accuracy:
                 best_accuracy = epoch_acc
                 best_model_weights = copy.deepcopy(model.state_dict())
 
-    print('Best val Acc: {:4f}'.format(best_accuracy))
-
+    print('Best validation Accuracy: {:4f}'.format(best_accuracy))
     model.load_state_dict(best_model_weights)  # retain best weights
     return model
 
