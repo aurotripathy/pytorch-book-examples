@@ -27,7 +27,6 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
-                scheduler.step()
                 model.train()  # Set model to training mode
             else:
                 model.eval()   # Set model to evaluate mode
@@ -66,13 +65,17 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
                 best_accuracy = epoch_acc
                 best_model_weights = copy.deepcopy(model.state_dict())
 
+            if phase == 'train':
+                scheduler.step()
+
+
     print('Best validation Accuracy: {:4f}'.format(best_accuracy))
     model.load_state_dict(best_model_weights)  # retain best weights
     return model
 
 
 def test_model(model, num_images=6):
-    was_training = model.training
+
     model.eval()
     images_so_far = 0
     fig = plt.figure()
@@ -93,12 +96,12 @@ def test_model(model, num_images=6):
                 imshow(inputs.cpu().data[j])
 
                 if images_so_far == num_images:
-                    model.train(mode=was_training)
                     return
-        model.train(mode=was_training)
+
 
 
 def fine_tune_model(mode):
+
     criterion = nn.CrossEntropyLoss()
     model = models.resnet18(pretrained=True)  # pretrained=True will download its weights
 
@@ -122,7 +125,7 @@ def fine_tune_model(mode):
         exit(2)
     model = model.to(device)
 
-    # Decay LR by a factor of 0.1 every 7 epochs
+    # Decay learning rate by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
     model = train_val_model(model, criterion, optimizer, exp_lr_scheduler)
