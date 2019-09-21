@@ -27,9 +27,9 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
-                model.train()  # Set model to training mode
+                model.train()  # Set mode
             else:
-                model.eval()   # Set model to evaluate mode
+                model.eval()   # Set mode
 
             running_loss = 0.0
             running_corrects = 0
@@ -74,10 +74,10 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
     return model
 
 
-def test_model(model, num_images=6):
+def test_model(model, display_count=6):
 
     model.eval()
-    images_so_far = 0
+    displayed_so_far = 0
     fig = plt.figure()
 
     with torch.no_grad():
@@ -89,13 +89,13 @@ def test_model(model, num_images=6):
             _, preds = torch.max(outputs, 1)
 
             for j in range(inputs.size()[0]):
-                images_so_far += 1
-                ax = plt.subplot(num_images//2, 2, images_so_far)
+                displayed_so_far += 1
+                ax = plt.subplot(display_count//2, 2, displayed_so_far)
                 ax.axis('off')
                 ax.set_title('predicted: {}'.format(class_names[preds[j]]))
                 imshow(inputs.cpu().data[j])
 
-                if images_so_far == num_images:
+                if displayed_so_far == display_count:
                     return
 
 
