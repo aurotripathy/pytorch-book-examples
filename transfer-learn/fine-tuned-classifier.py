@@ -14,7 +14,6 @@ from torchvision import models
 import copy
 from utils import imshow, load_data
 
-
 def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
 
     best_model_weights = copy.deepcopy(model.state_dict())
@@ -44,7 +43,7 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
                 # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)  # forward pass
-                    _, preds = torch.max(outputs, 1)
+                    _, predictions = torch.max(outputs, 1)  # predictions == argmax
                     loss = criterion(outputs, labels)
 
                     # backward + optimize only if in training phase
@@ -53,7 +52,7 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
                         optimizer.step()
 
                 running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(preds == labels.data)
+                running_corrects += torch.sum(predictions == labels.data)
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
@@ -86,18 +85,17 @@ def test_model(model, display_count=6):
             labels = labels.to(device)
 
             outputs = model(inputs)
-            _, preds = torch.max(outputs, 1)
+            _, predictions = torch.max(outputs, 1)  # predictions == argmax
 
             for j in range(inputs.size()[0]):
                 displayed_so_far += 1
                 ax = plt.subplot(display_count//2, 2, displayed_so_far)
                 ax.axis('off')
-                ax.set_title('predicted: {}'.format(class_names[preds[j]]))
+                ax.set_title('predicted: {}'.format(class_names[predictions[j]]))
                 imshow(inputs.cpu().data[j])
 
                 if displayed_so_far == display_count:
                     return
-
 
 
 def fine_tune_model(mode):
