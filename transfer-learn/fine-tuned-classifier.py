@@ -1,5 +1,6 @@
 """
-Derived from https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
+Fine-tune from ResNet18 ImageNet weights two ways: 
+(1) fine-tune all layers (2) just the fully-connected layer
 """
 from __future__ import print_function, division
 
@@ -10,19 +11,17 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 import torchvision
 from torchvision import models
-import time
 import copy
 from utils import imshow, load_data
 
 
-def train_val(model, criterion, optimizer, scheduler, num_epochs=25):
-    start_time = time.time()
+def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
 
-    best_model_wts = copy.deepcopy(model.state_dict())
-    best_acc = 0.0
+    best_model_weights = copy.deepcopy(model.state_dict())
+    best_accuracy = 0.0
 
     for epoch in range(num_epochs):
-        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        print('\nEpoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
 
         # Each epoch has a training and validation phase
@@ -36,7 +35,7 @@ def train_val(model, criterion, optimizer, scheduler, num_epochs=25):
             running_loss = 0.0
             running_corrects = 0
 
-            # Iterate over data.
+            # Iterate over mini-batches
             for inputs, labels in dataloaders[phase]:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
@@ -64,19 +63,13 @@ def train_val(model, criterion, optimizer, scheduler, num_epochs=25):
                 phase, epoch_loss, epoch_acc))
 
             # deep copy the model
-            if phase == 'val' and epoch_acc > best_acc:
-                best_acc = epoch_acc
-                best_model_wts = copy.deepcopy(model.state_dict())
+            if phase == 'val' and epoch_acc > best_accuracy:
+                best_accuracy = epoch_acc
+                best_model_weights = copy.deepcopy(model.state_dict())
 
-        print()
+    print('Best val Acc: {:4f}'.format(best_accuracy))
 
-    time_elapsed = time.time() - start_time
-    print('Training complete in {:.0f}m {:.0f}s'.format(
-        time_elapsed // 60, time_elapsed % 60))
-    print('Best val Acc: {:4f}'.format(best_acc))
-
-    # load best model weights
-    model.load_state_dict(best_model_wts)
+    model.load_state_dict(best_model_weights)  # retain best weights
     return model
 
 
@@ -107,8 +100,7 @@ def test_model(model, num_images=6):
         model.train(mode=was_training)
 
 
-
-def fine_tune(mode):
+def fine_tune_model(mode):
     criterion = nn.CrossEntropyLoss()
     model = models.resnet18(pretrained=True)  # pretrained=True will download its weights
 
@@ -135,7 +127,7 @@ def fine_tune(mode):
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
-    model = train_val(model, criterion, optimizer, exp_lr_scheduler, num_epochs=25)
+    model = train_val_model(model, criterion, optimizer, exp_lr_scheduler)
     return model
 
 plt.ion()   # interactive mode
@@ -149,9 +141,9 @@ inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
 imshow(out, title=[class_names[x] for x in classes])
 
-model = fine_tune('all_layers')
+model = fine_tune_model('all_layers')
 test_model(model)
-model = fine_tune('only_fc_layer')
+model = fine_tune_model('only_fc_layer')  # train just the fully-connected layer
 test_model(model)
 
 plt.ioff()
