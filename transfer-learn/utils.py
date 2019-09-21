@@ -19,7 +19,7 @@ def imshow(inp, title=None):
 
 def load_data(data_dir):
     # For training, augment and normalize images
-    # For validation, just normalize images
+    # For validation/test, just normalize images
     data_transforms = {
         'train': transforms.Compose([
             transforms.RandomResizedCrop(224),
