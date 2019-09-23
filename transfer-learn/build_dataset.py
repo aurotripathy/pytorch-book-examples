@@ -56,8 +56,8 @@ def create_train_val_test(all_folder):
         image_files.append(image_file)
     random.shuffle(image_files)
     
-    split_1 = int(0.7 * len(image_files))
-    split_2 = int(0.9 * len(image_files))
+    split_1 = int(0.1 * len(image_files))
+    split_2 = int(0.5 * len(image_files))
     train_filenames = image_files[:split_1]
     print('Total train files', len(train_filenames))
     val_filenames = image_files[split_1:split_2]
