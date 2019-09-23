@@ -66,18 +66,15 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
             if phase == 'train':
                 scheduler.step()
 
-
     print('Best validation accuracy: {:4f}'.format(best_accuracy))
     model.load_state_dict(best_model_weights)  # retain best weights
     return model
 
 
-def test_model(model, display_count=6):
+def test_model(model):
 
     model.eval()
-    displayed_so_far = 0
-    fig = plt.figure()
-
+    running_corrects = 0
     with torch.no_grad():
         for i, (inputs, labels) in enumerate(dataloaders['test']):
             inputs = inputs.to(device)
@@ -85,19 +82,12 @@ def test_model(model, display_count=6):
 
             outputs = model(inputs)
             _, predictions = torch.max(outputs, 1)  # predictions == argmax
-
-            for j in range(inputs.size()[0]):
-                displayed_so_far += 1
-                ax = plt.subplot(display_count//2, 2, displayed_so_far)
-                ax.axis('off')
-                ax.set_title('predicted: {}'.format(class_names[predictions[j]]))
-                imshow(inputs.cpu().data[j])
-
-                if displayed_so_far == display_count:
-                    return
+            running_corrects += torch.sum(predictions == labels.data)
+        acc = running_corrects.double() / dataset_sizes['test']
+    print('Test accuracy: {:.4f}'.format(acc))
 
 
-def fine_tune_model(mode):
+def configure_model(mode):
 
     criterion = nn.CrossEntropyLoss()
     model = models.resnet18(pretrained=True)  # pretrained=True will download its weights
@@ -118,12 +108,10 @@ def fine_tune_model(mode):
         # Note, only parameters of final layer are being optimized
         optimizer = optim.SGD(model.fc.parameters(), lr=0.001, momentum=0.9)
     elif mode == 'learn_from_scratch':
-        model = models.resnet18(pretrained=False)  # start with random weights, all layers
+        model = models.resnet18(pretrained=False)  # start with random weights in all layers
         model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
         optimizer  = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    else:
-        print('Unknown training mode')
-        exit(2)
+
     model = model.to(device)
 
     # Decay learning rate by a factor of 0.1 every 7 epochs
@@ -145,9 +133,11 @@ inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
 imshow(out, title=[class_names[x] for x in classes])
 
-for mode in ['learn_from_scratch', 'fine_tune_all_layers', 'fine_tune_only_fc_layer']:
+for mode in ['learn_from_scratch',
+             'fine_tune_all_layers',
+             'fine_tune_only_fc_layer']:
     print('\nMode: {}'.format(mode))
-    model = fine_tune_model(mode)
+    model = configure_model(mode)
     test_model(model)
 
 plt.ioff()
