@@ -104,7 +104,7 @@ def fine_tune_model(mode):
 
     num_in_features_last = model.fc.in_features
     
-    if mode == 'fine_tune_all_layers':  # fine-tune all layers
+    if mode == 'fine_tune_all_layers':
         model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
         # Note, parameters in all layer are being optimized
         optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
@@ -118,7 +118,7 @@ def fine_tune_model(mode):
         # Note, only parameters of final layer are being optimized
         optimizer = optim.SGD(model.fc.parameters(), lr=0.001, momentum=0.9)
     elif mode == 'learn_from_scratch':
-        model = models.resnet18(pretrained=False)  # start with random weights
+        model = models.resnet18(pretrained=False)  # start with random weights, all layers
         model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
         optimizer  = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     else:
