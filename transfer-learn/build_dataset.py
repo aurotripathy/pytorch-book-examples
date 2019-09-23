@@ -95,7 +95,8 @@ create_train_val_test(dir_path)
 
 
 """
-output end up with the following structure:
+output structure
+
 superbeings/
 ├── catwoman
 │   └── all
@@ -103,6 +104,11 @@ superbeings/
 ├── superman
 │   └── all
 |        <images>
+├── test
+│   ├── catwoman
+|   |     <test images>
+│   └── superman
+|   |     <test images>
 ├── train
 │   ├── catwoman
 |   |     <training images>
@@ -112,5 +118,6 @@ superbeings/
     ├── catwoman
     |     <validation images>
     └── superman
-    |     <validation images>
+          <validation images>
+
 """
