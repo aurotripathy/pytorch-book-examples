@@ -21,7 +21,6 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
 
     for epoch in range(num_epochs):
         print('\nEpoch {}/{}'.format(epoch, num_epochs - 1))
-        print('-' * 10)
 
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
@@ -57,8 +56,8 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-                phase, epoch_loss, epoch_acc))
+            print('\t{} loss: {:.4f}, {} accuracy: {:.4f}'.format(
+                phase, epoch_loss, phase, epoch_acc))
 
             if phase == 'val' and epoch_acc > best_accuracy:
                 best_accuracy = epoch_acc
@@ -68,7 +67,7 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
                 scheduler.step()
 
 
-    print('Best validation Accuracy: {:4f}'.format(best_accuracy))
+    print('Best validation accuracy: {:4f}'.format(best_accuracy))
     model.load_state_dict(best_model_weights)  # retain best weights
     return model
 
@@ -105,11 +104,11 @@ def fine_tune_model(mode):
 
     num_in_features_last = model.fc.in_features
     
-    if mode == 'all_layers':  # fine-tune all layers
+    if mode == 'fine_tune_all_layers':  # fine-tune all layers
         model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
         # Note, parameters in all layer are being optimized
         optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    elif mode == 'only_fc_layer':
+    elif mode == 'fine_tune_only_fc_layer':
         for param in model.parameters():
             param.requires_grad = False
             
@@ -118,6 +117,10 @@ def fine_tune_model(mode):
         
         # Note, only parameters of final layer are being optimized
         optimizer = optim.SGD(model.fc.parameters(), lr=0.001, momentum=0.9)
+    elif mode == 'learn_from_scratch':
+        model = models.resnet18(pretrained=False)  # start with random weights
+        model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
+        optimizer  = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     else:
         print('Unknown training mode')
         exit(2)
@@ -132,7 +135,9 @@ def fine_tune_model(mode):
 plt.ion()   # interactive mode
 
 dataloaders, dataset_sizes, class_names = load_data('superbeings')
-
+print('Train size {}, Val size {}, Test size {}'.format(dataset_sizes['train'],
+                                                        dataset_sizes['val'],
+                                                        dataset_sizes['test']))
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Get a batch of training data and show it
@@ -140,10 +145,10 @@ inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
 imshow(out, title=[class_names[x] for x in classes])
 
-model = fine_tune_model('all_layers')
-test_model(model)
-model = fine_tune_model('only_fc_layer')  # train just the fully-connected layer
-test_model(model)
+for mode in ['learn_from_scratch', 'fine_tune_all_layers', 'fine_tune_only_fc_layer']:
+    print('\nMode: {}'.format(mode))
+    model = fine_tune_model(mode)
+    test_model(model)
 
 plt.ioff()
 plt.show()
