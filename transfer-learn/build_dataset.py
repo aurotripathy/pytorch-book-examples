@@ -33,7 +33,7 @@ def extract_frames(movie_file):
             break
 
         count += 1
-    print('Images count', count)
+    print('{} images for movie, {}'.format(count, movie_file))
     return dir_path
 
 def copy_files(source_filenames, dest_path):
