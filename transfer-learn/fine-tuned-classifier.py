@@ -95,7 +95,7 @@ def configure_model(mode):
     num_in_features_last = model.fc.in_features
     
     if mode == 'fine_tune_all_layers':
-        model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
+        model.fc = nn.Linear(num_in_features_last,nb_classes)  # make last layer a binary classifier
         # Note, parameters in all layer are being optimized
         optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     elif mode == 'fine_tune_only_fc_layer':
@@ -103,13 +103,13 @@ def configure_model(mode):
             param.requires_grad = False
             
         # Newly constructed module has requires_grad=True by default
-        model.fc = nn.Linear(num_in_features_last, 2)
+        model.fc = nn.Linear(num_in_features_last, nb_classes)
         
         # Note, only parameters of final layer are being optimized
         optimizer = optim.SGD(model.fc.parameters(), lr=0.001, momentum=0.9)
     elif mode == 'learn_from_scratch':
         model = models.resnet18(pretrained=False)  # start with random weights in all layers
-        model.fc = nn.Linear(num_in_features_last, 2)  # make last layer a binary classifier
+        model.fc = nn.Linear(num_in_features_last, nb_classes)  # make last layer a binary classifier
         optimizer  = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
     model = model.to(device)
@@ -126,8 +126,9 @@ dataloaders, dataset_sizes, class_names = load_data('superbeings')
 print('Train size {}, Val size {}, Test size {}'.format(dataset_sizes['train'],
                                                         dataset_sizes['val'],
                                                         dataset_sizes['test']))
+print('Class names:{}'.format(class_names))
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+nb_classes = len(class_names)
 # Get a batch of training data and show it
 inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
