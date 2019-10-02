@@ -78,13 +78,9 @@ def create_train_val_test(all_folder):
             os.makedirs(path)
             copy_files(filenames, path)
     
-dir_path = extract_frames('videos/superman.MOV')
-create_train_val_test(dir_path)
-dir_path = extract_frames('videos/catwoman.MOV')
-create_train_val_test(dir_path)
-dir_path = extract_frames('videos/captain_america.MOV')
-create_train_val_test(dir_path)
-
+for video_file in ['superman.MOV', 'catwoman.MOV', 'captain_america.MOV']:
+    dir_path = extract_frames(join('videos', video_file))
+    create_train_val_test(dir_path)
 
 """
 output structure
