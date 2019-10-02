@@ -1,6 +1,7 @@
 """
-Fine-tune from ResNet18 ImageNet weights two ways: 
-(1) fine-tune all layers (2) just the fully-connected layer
+Fine-tune from ResNet18 ImageNet weights:
+(1) learn the fully-connected layer from scratch
+(2) optionally fine-tune the rest of the layers
 """
 from __future__ import print_function, division
 
@@ -22,14 +23,13 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
     for epoch in range(num_epochs):
         print('\nEpoch {}/{}'.format(epoch, num_epochs - 1))
 
-        # Each epoch has a training and validation phase
-        for phase in ['train', 'val']:
+        for phase in ['train', 'val']:  # each epoch does train and validate
             if phase == 'train':
                 model.train()  # Set mode
             else:
                 model.eval()   # Set mode
 
-            running_loss = 0.0
+            running_losses = 0.0
             running_corrects = 0
 
             # Iterate over mini-batches
@@ -50,17 +50,17 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
                         loss.backward()
                         optimizer.step()
 
-                running_loss += loss.item() * inputs.size(0)
+                running_losses += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(predictions == labels.data)
 
-            epoch_loss = running_loss / dataset_sizes[phase]
-            epoch_acc = running_corrects.double() / dataset_sizes[phase]
+            epoch_loss = running_losses / dataset_sizes[phase]
+            epoch_accuracy = running_corrects.double() / dataset_sizes[phase]
 
             print('\t{} loss: {:.4f}, {} accuracy: {:.4f}'.format(
-                phase, epoch_loss, phase, epoch_acc))
+                phase, epoch_loss, phase, epoch_accuracy))
 
-            if phase == 'val' and epoch_acc > best_accuracy:
-                best_accuracy = epoch_acc
+            if phase == 'val' and epoch_accuracy > best_accuracy:
+                best_accuracy = epoch_accuracy
                 best_model_weights = copy.deepcopy(model.state_dict())
 
             if phase == 'train':
