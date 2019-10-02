@@ -82,6 +82,8 @@ dir_path = extract_frames('videos/superman.MOV')
 create_train_val_test(dir_path)
 dir_path = extract_frames('videos/catwoman.MOV')
 create_train_val_test(dir_path)
+dir_path = extract_frames('videos/captain_america.MOV')
+create_train_val_test(dir_path)
 
 
 """
