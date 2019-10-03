@@ -4,7 +4,7 @@ from torchvision import datasets, transforms
 import os
 import numpy as np
 
-def display_loss(train_losses, val_losses, title, folder='plots'):
+def display_losses(train_losses, val_losses, title, folder='plots'):
 
     if not os.path.exists(folder):
         os.makedirs(folder)
