@@ -14,7 +14,8 @@ def display_losses(train_losses, val_losses, title, folder='plots'):
     y2_axis = val_losses
 
     fig, ax = plt.subplots()
-    ax.plot(x_axis, y1_axis, 'r--', x_axis, y2_axis, 'b--')
+    ax.plot(x_axis, y1_axis, 'r--', label='train')
+    ax.plot(x_axis, y2_axis, 'b--', label='val')
 
     ax.set(xlabel='Epochs', ylabel='Epoch Loss',
            title=title)
