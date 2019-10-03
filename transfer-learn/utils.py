@@ -4,6 +4,27 @@ from torchvision import datasets, transforms
 import os
 import numpy as np
 
+def display_loss(train_losses, val_losses, title, folder='plots'):
+
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    x_axis = np.arange(len(train_losses))
+    y1_axis = train_losses
+    y2_axis = val_losses
+
+    fig, ax = plt.subplots()
+    ax.plot(x_axis, y1_axis, 'r--', x_axis, y2_axis, 'b--')
+
+    ax.set(xlabel='Epochs', ylabel='Epoch Loss',
+           title=title)
+    ax.grid()
+
+    fig.savefig(os.path.join(folder, title + '.png'))
+    plt.show()
+
+
+
 def imshow(inp, title=None):
     """Imshow for Tensor."""
     inp = inp.numpy().transpose((1, 2, 0))
