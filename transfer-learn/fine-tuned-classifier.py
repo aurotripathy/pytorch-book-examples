@@ -13,7 +13,7 @@ from torch.optim import lr_scheduler
 import torchvision
 from torchvision import models
 import copy
-from utils import imshow, load_data, display_loss
+from utils import imshow, load_data, display_losses
 
 def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
 
@@ -71,9 +71,8 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
                 scheduler.step()
 
     print('Best validation accuracy: {:4f}'.format(best_accuracy))
-    display_loss(train_epoch_losses, val_epoch_losses, 'Train-Val Loss')
     model.load_state_dict(best_model_weights)  # retain best weights
-    return model
+    return model, train_epoch_losses, val_epoch_losses
 
 
 def test_model(model):
@@ -143,7 +142,9 @@ for mode in ['learn_from_scratch',
              'fine_tune_all_layers',
              'fine_tune_only_fc_layer']:
     print('\nMode: {}'.format(mode))
-    model = configure_run_model(mode)
+    model, train_losses, val_losses = configure_run_model(mode)
+    display_losses(train_losses, val_losses,
+                   'Train-Val Loss: ' + mode)
     test_model(model)
 
 plt.ioff()
