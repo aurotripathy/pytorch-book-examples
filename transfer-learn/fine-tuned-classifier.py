@@ -13,13 +13,14 @@ from torch.optim import lr_scheduler
 import torchvision
 from torchvision import models
 import copy
-from utils import imshow, load_data
+from utils import imshow, load_data, display_loss
 
 def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
 
     best_model_weights = copy.deepcopy(model.state_dict())
     best_accuracy = 0.0
-
+    train_epoch_losses = []
+    val_epoch_losses = []
     for epoch in range(num_epochs):
         print('\nEpoch {}/{}'.format(epoch, num_epochs - 1))
 
@@ -55,7 +56,10 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
 
             epoch_loss = running_losses / dataset_sizes[phase]
             epoch_accuracy = running_corrects.double() / dataset_sizes[phase]
-
+            if phase == 'train':
+                train_epoch_losses.append(epoch_loss)
+            else:
+                val_epoch_losses.append(epoch_loss)
             print('\t{} loss: {:.4f}, {} accuracy: {:.4f}'.format(
                 phase, epoch_loss, phase, epoch_accuracy))
 
@@ -67,6 +71,7 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
                 scheduler.step()
 
     print('Best validation accuracy: {:4f}'.format(best_accuracy))
+    display_loss(train_epoch_losses, val_epoch_losses, 'Train-Val Loss')
     model.load_state_dict(best_model_weights)  # retain best weights
     return model
 
@@ -87,7 +92,7 @@ def test_model(model):
     print('Test accuracy: {:.4f}'.format(acc))
 
 
-def configure_model(mode):
+def configure_run_model(mode):
 
     criterion = nn.CrossEntropyLoss()
     model = models.resnet18(pretrained=True)  # pretrained=True will download its weights
@@ -138,7 +143,7 @@ for mode in ['learn_from_scratch',
              'fine_tune_all_layers',
              'fine_tune_only_fc_layer']:
     print('\nMode: {}'.format(mode))
-    model = configure_model(mode)
+    model = configure_run_model(mode)
     test_model(model)
 
 plt.ioff()
