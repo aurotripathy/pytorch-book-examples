@@ -10,8 +10,10 @@ def display_losses(train_losses, val_losses, title, folder='plots'):
         os.makedirs(folder)
 
     x_axis = np.arange(len(train_losses))
-
     fig, ax = plt.subplots()
+    ax.axis(ymin=0., ymax=1.2)  # hard coded to benefit comparisions
+
+
     ax.plot(x_axis, train_losses, 'r-', label='train')
     ax.plot(x_axis, val_losses, 'b-', label='val')
     ax.legend()
