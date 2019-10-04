@@ -25,10 +25,7 @@ def train_val_model(model, criterion, optimizer, scheduler, num_epochs=15):
         print('\nEpoch {}/{}'.format(epoch, num_epochs - 1))
 
         for phase in ['train', 'val']:  # each epoch does train and validate
-            if phase == 'train':
-                model.train()  # Set mode
-            else:
-                model.eval()   # Set mode
+            model.train() if phase == 'train' else model.eval()
 
             running_losses = 0.0
             running_corrects = 0
@@ -99,7 +96,7 @@ def configure_run_model(mode):
     num_in_features_last = model.fc.in_features
     
     if mode == 'fine-tune-all-layers':
-        model.fc = nn.Linear(num_in_features_last,nb_classes)  # make last layer a binary classifier
+        model.fc = nn.Linear(num_in_features_last, nb_classes)  # make last layer a binary classifier
         # Note, parameters in all layer are being optimized
         optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     elif mode == 'fine-tune-only-fc-layer':
