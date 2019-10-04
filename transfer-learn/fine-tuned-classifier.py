@@ -99,15 +99,15 @@ def configure_run_model(mode):
         model.fc = nn.Linear(num_in_features_last, nb_classes)  # make last layer a binary classifier
         # Note, parameters in all layer are being optimized
         optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+
     elif mode == 'fine-tune-only-fc-layer':
         for param in model.parameters():
             param.requires_grad = False
-            
         # Newly constructed module has requires_grad=True by default
         model.fc = nn.Linear(num_in_features_last, nb_classes)
-        
         # Note, only parameters of final layer are being optimized
         optimizer = optim.SGD(model.fc.parameters(), lr=0.001, momentum=0.9)
+
     elif mode == 'learn-from-scratch':
         model = models.resnet18(pretrained=False)  # start with random weights in all layers
         model.fc = nn.Linear(num_in_features_last, nb_classes)  # make last layer a binary classifier
