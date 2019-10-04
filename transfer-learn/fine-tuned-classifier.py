@@ -15,7 +15,7 @@ from torchvision import models
 import copy
 from utils import show_batch, load_data, display_losses
 
-def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
+def train_val_model(model, criterion, optimizer, scheduler, num_epochs=15):
 
     best_model_weights = copy.deepcopy(model.state_dict())
     best_accuracy = 0.0
@@ -98,11 +98,11 @@ def configure_run_model(mode):
 
     num_in_features_last = model.fc.in_features
     
-    if mode == 'fine_tune_all_layers':
+    if mode == 'fine-tune-all-layers':
         model.fc = nn.Linear(num_in_features_last,nb_classes)  # make last layer a binary classifier
         # Note, parameters in all layer are being optimized
         optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    elif mode == 'fine_tune_only_fc_layer':
+    elif mode == 'fine-tune-only-fc-layer':
         for param in model.parameters():
             param.requires_grad = False
             
@@ -111,7 +111,7 @@ def configure_run_model(mode):
         
         # Note, only parameters of final layer are being optimized
         optimizer = optim.SGD(model.fc.parameters(), lr=0.001, momentum=0.9)
-    elif mode == 'learn_from_scratch':
+    elif mode == 'learn-from-scratch':
         model = models.resnet18(pretrained=False)  # start with random weights in all layers
         model.fc = nn.Linear(num_in_features_last, nb_classes)  # make last layer a binary classifier
         optimizer  = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
@@ -138,13 +138,13 @@ inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
 show_batch(out, title=[class_names[x] for x in classes])
 
-for mode in ['learn_from_scratch',
-             'fine_tune_all_layers',
-             'fine_tune_only_fc_layer']:
+for mode in ['learn-from-scratch',
+             'fine-tune-all-layers',
+             'fine-tune-only-fc-layer']:
     print('\nMode: {}'.format(mode))
     model, train_losses, val_losses = configure_run_model(mode)
     display_losses(train_losses, val_losses,
-                   'Train-Val Loss: ' + mode)
+                   'Train-Val Loss: Method:' + mode)
     test_model(model)
 
 plt.ioff()
