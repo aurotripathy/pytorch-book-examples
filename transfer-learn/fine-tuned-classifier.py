@@ -13,7 +13,7 @@ from torch.optim import lr_scheduler
 import torchvision
 from torchvision import models
 import copy
-from utils import imshow, load_data, display_losses
+from utils import show_batch, load_data, display_losses
 
 def train_val_model(model, criterion, optimizer, scheduler, num_epochs=10):
 
@@ -136,7 +136,7 @@ nb_classes = len(class_names)
 # Get a batch of training data and show it
 inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
-imshow(out, title=[class_names[x] for x in classes])
+show_batch(out, title=[class_names[x] for x in classes])
 
 for mode in ['learn_from_scratch',
              'fine_tune_all_layers',
