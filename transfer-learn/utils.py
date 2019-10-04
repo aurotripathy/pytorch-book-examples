@@ -10,23 +10,20 @@ def display_losses(train_losses, val_losses, title, folder='plots'):
         os.makedirs(folder)
 
     x_axis = np.arange(len(train_losses))
-    y1_axis = train_losses
-    y2_axis = val_losses
 
     fig, ax = plt.subplots()
-    ax.plot(x_axis, y1_axis, 'r--', label='train')
-    ax.plot(x_axis, y2_axis, 'b--', label='val')
+    ax.plot(x_axis, train_losses, 'r-', label='train')
+    ax.plot(x_axis, val_losses, 'b-', label='val')
+    ax.legend()
 
-    ax.set(xlabel='Epochs', ylabel='Epoch Loss',
-           title=title)
+    ax.set(xlabel='Epochs', ylabel='Epoch Loss', title=title)
     ax.grid()
 
     fig.savefig(os.path.join(folder, title + '.png'))
     plt.show()
 
 
-
-def imshow(inp, title=None):
+def show_batch(inp, title=None):
     """Imshow for Tensor."""
     inp = inp.numpy().transpose((1, 2, 0))
     mean = np.array([0.485, 0.456, 0.406])
@@ -39,6 +36,7 @@ def imshow(inp, title=None):
     plt.show()  # pause a bit so that plots are updated
     plt.pause(1)  # pause a bit so that plots are updated
 
+    
 def load_data(data_dir):
     # For training, augment and normalize images
     # For validation/test, just normalize images
