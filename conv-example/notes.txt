@@ -1,0 +1,6 @@
+talk about how the state dict is initialized normally 
+
+def reset_parameters(self):
+        stdv = 1.0 / math.sqrt(self.state_size)
+        for weight in self.parameters():
+            weight.data.uniform_(-stdv, +stdv)
