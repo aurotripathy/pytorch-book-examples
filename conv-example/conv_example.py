@@ -1,7 +1,7 @@
 """ 
 Show the workings of a convolution with PyTorch.
 Data from http://cs231n.github.io/convolutional-networks/
-Results consistent with the web-site results
+Results consistent with the results on the web-site
 """
 import torch
 import numpy as np
@@ -105,6 +105,6 @@ convolve.load_state_dict(params)
 print('Initialized state dict(weights and bias):\n',
       convolve.state_dict())
 
-# The forward pass
+# Apply the forward pass
 result = convolve(input)
 print('Output of covolution:\n', result)
