@@ -1,3 +1,7 @@
+"""
+Setup the train/validate/test data to be directly used by the class,
+torchvision.datasets.ImageFolder
+"""
 import cv2
 import os
 import glob
