@@ -55,6 +55,8 @@ Initialized state dict(weights and bias):
          [[-1., -1., -1.],
           [-1., -1.,  1.],
           [ 0.,  1., -1.]]]])), ('conv.bias', tensor([1., 0.]))])
+Output shape:
+ torch.Size([1, 2, 3, 3])
 Output of covolution:
  tensor([[[[ 5.,  6.,  8.],
           [ 9.,  7.,  5.],
@@ -63,5 +65,4 @@ Output of covolution:
          [[-6., -2.,  0.],
           [-9., -6., -8.],
           [-5., -8., -3.]]]], grad_fn=<MkldnnConvolutionBackward>)
-(pyt1.2) auro@auro-ml:~/book/pytorch-book-examples/conv-example$ 
 ~~~~
