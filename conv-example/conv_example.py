@@ -106,5 +106,6 @@ print('Initialized state dict(weights and bias):\n',
       convolve.state_dict())
 
 # Apply the forward pass
-result = convolve(input)
-print('Output of covolution:\n', result)
+output = convolve(input)
+print('Output shape:\n', output.shape)
+print('Output of covolution:\n', output)
