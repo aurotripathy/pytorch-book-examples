@@ -1,4 +1,4 @@
-<code>
+`
 (pyt1.2) auro@auro-ml:~/book/pytorch-book-examples/conv-example$ python conv_example.py 
 Input shape:
  torch.Size([1, 3, 7, 7])
@@ -64,4 +64,4 @@ Output of covolution:
           [-9., -6., -8.],
           [-5., -8., -3.]]]], grad_fn=<MkldnnConvolutionBackward>)
 (pyt1.2) auro@auro-ml:~/book/pytorch-book-examples/conv-example$ 
-</code>
+`
