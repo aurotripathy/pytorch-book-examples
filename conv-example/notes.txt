@@ -76,3 +76,27 @@ for i in range(-1, 1):  # valid range
 
 print(out)
 
+
+
+# latest
+import numpy as np
+
+img = np.array([[0, 0, 0],
+                [0, 1, 2],
+                [0, 2, 2]])
+kernel = np.array([[1, -1,  1],
+                   [0, -1,  0],
+                   [0, -1, -1]])
+out = np.zeros((3,3))
+
+shift = lambda x: x+1
+
+for i in range(-1, 1):  # valid range
+    for j in range(-1, 1):  # valid range
+        sum = 0
+        for m in range(-1, 2):
+            for n in range(-1, 2):
+                sum += img[shift(i + m), shift(i + n)] * kernel[shift(m), shift(n)]
+        out[shift(i), shift(j)] = sum
+print(out)
+
