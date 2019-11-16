@@ -100,7 +100,7 @@ print('Parameter bias shape:\n', params['conv.bias'].shape)
 params['conv.bias'] = torch.tensor([1., 0.])
 
 
-# Loading the state dict is absolutely necessary
+# Loading the state dict is necessary
 convolve.load_state_dict(params)
 print('Initialized state dict(weights and bias):\n',
       convolve.state_dict())
@@ -108,4 +108,4 @@ print('Initialized state dict(weights and bias):\n',
 # Apply the forward pass
 output = convolve(input)
 print('Output shape:\n', output.shape)
-print('Output of covolution:\n', output)
+print('Output of convolution:\n', output)
