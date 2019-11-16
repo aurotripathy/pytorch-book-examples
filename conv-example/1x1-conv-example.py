@@ -1,7 +1,5 @@
 """ 
-Show the workings of a convolution with PyTorch.
-Data from http://cs231n.github.io/convolutional-networks/
-Results consistent with the results on the web-site
+1x1 convolution
 """
 import torch
 import numpy as np
