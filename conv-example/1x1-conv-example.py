@@ -59,11 +59,11 @@ w1x = np.array([[[1]], [[3]], [[1]]])
 
 
 params = convolve.state_dict()
-print('Parameter weights shape:\n', params['conv.weight'].shape)
-print('Reinitialize params')
+print('Parameter weights shape:', params['conv.weight'].shape)
 
-params['conv.weight\n'][0, :, :, :] = torch.from_numpy(w0x)
-params['conv.weight\n'][1, :, :, :] = torch.from_numpy(w1x)
+# Reinitialize params
+params['conv.weight'][0, :, :, :] = torch.from_numpy(w0x)
+params['conv.weight'][1, :, :, :] = torch.from_numpy(w1x)
 
 # Loading the state dict is absolutely necessary
 convolve.load_state_dict(params)
