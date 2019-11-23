@@ -6,43 +6,39 @@ import numpy as np
 
 # three channels (or feature maps)
 # 4D matrix, first dimension represents batch-size
-input = torch.zeros([1, 3, 7, 7], dtype=torch.float32)
+input = torch.zeros([1, 3, 5, 5], dtype=torch.float32)
 # Init inputs with padding all around
-i0 = np.array([[0, 0, 0, 0, 0, 0, 0],
-               [0, 1, 2, 1, 0, 2, 0],
-               [0, 2, 2, 1, 0, 0, 0],
-               [0, 2, 0, 2, 2, 0, 0],
-               [0, 2, 1, 2, 2, 2, 0],
-               [0, 1, 2, 0, 2, 0, 0],
-               [0, 0, 0, 0, 0, 0, 0]])
+i0 = np.array([[1, 2, 1, 0, 2],
+               [2, 2, 1, 0, 0],
+               [2, 0, 2, 2, 0],
+               [2, 1, 2, 2, 2],
+               [1, 2, 0, 2, 0]])
+
 input[0, 0, :, :] = torch.from_numpy(i0)
 
-i1 = np.array([[0, 0, 0, 0, 0, 0, 0],
-               [0, 2, 1, 2, 2, 1, 0],
-               [0, 2, 1, 0, 1, 0, 0],
-               [0, 1, 0, 0, 0, 2, 0],
-               [0, 2, 2, 2, 0, 1, 0],
-               [0, 1, 0, 1, 2, 2, 0],
-               [0, 0, 0, 0, 0, 0, 0]])
+i1 = np.array([[2, 1, 2, 2, 1],
+               [2, 1, 0, 1, 0],
+               [1, 0, 0, 0, 2],
+               [2, 2, 2, 0, 1],
+               [1, 0, 1, 2, 2]])
+
 input[0, 1, :, :] = torch.from_numpy(i1)
 
-i2 = np.array([[0, 0, 0, 0, 0, 0, 0],
-               [0, 2, 1, 1, 0, 1, 0],
-               [0, 2, 2, 1, 0, 2, 0],
-               [0, 0, 0, 0, 1, 2, 0],
-               [0, 2, 2, 1, 1, 0, 0],
-               [0, 1, 2, 1, 0, 2, 0],
-               [0, 0, 0, 0, 0, 0, 0]])
+i2 = np.array([[2, 1, 1, 0, 1],
+               [2, 2, 1, 0, 2],
+               [0, 0, 0, 1, 2],
+               [2, 2, 1, 1, 0],
+               [1, 2, 1, 0, 2]])
 input[0, 2, :, :] = torch.from_numpy(i2)
 
 
 print('Input shape:\n', input.shape)
 print('Input:\n', input)
 
-class ConvIn3Out2(torch.nn.Module):
+class OneByOneConvIn3Out2(torch.nn.Module):
     """ 2D convolution with three inputs, two outputs """ 
     def __init__(self, input_size, output_size):
-        super(ConvIn3Out2, self).__init__()
+        super(OneByOneConvIn3Out2, self).__init__()
         kernel_size = 1  # 1 by 1
         self.conv = torch.nn.Conv2d(input_size,
                                     output_size,
@@ -55,9 +51,9 @@ class ConvIn3Out2(torch.nn.Module):
         out = self.conv(x)
         return out
 
-convolve = ConvIn3Out2(3,2) # Instantiate
+convolve = OneByOneConvIn3Out2(3,2) # Instantiate
 
-# Init the weights, replacing the random weights
+# Init w/known weights, replacing the random weights
 w00 = np.array([[1]])
 w01 = np.array([[2]])
 w02 = np.array([[1]])
@@ -88,4 +84,4 @@ print('Initialized state dict(weights and bias):\n',
 # Apply the forward pass
 output = convolve(input)
 print('Output shape:\n', output.shape)
-print('Output of covolution:\n', output)
+print('Output of 1x1 covolution:\n', output)
