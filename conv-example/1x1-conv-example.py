@@ -7,19 +7,15 @@ class OneByOneConvIn3Out2(torch.nn.Module):
     def __init__(self, input_size, output_size):
         super(OneByOneConvIn3Out2, self).__init__()
         kernel_size = 1  # 1 by 1
-        self.conv = torch.nn.Conv2d(input_size,
-                                    output_size,
-                                    kernel_size,
-                                    stride=1,
-                                    padding=0,
-                                    bias=False)
+        self.conv = torch.nn.Conv2d(input_size, output_size,
+                                    kernel_size, stride=1,
+                                    padding=0, bias=False)
         
     def forward(self, x):
         out = self.conv(x)
         return out
 
-# three channels (or feature maps)
-# 4D matrix, first dimension represents batch-size
+# three channels (aka feature maps); 4D tensor, 1st dimension is the batch-size
 input = torch.zeros([1, 3, 5, 5], dtype=torch.float32)
 
 # Init inputs 
