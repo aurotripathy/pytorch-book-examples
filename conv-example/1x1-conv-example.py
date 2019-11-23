@@ -1,8 +1,22 @@
-""" 
-1x1 convolution
-"""
+""" 1x1 convolution """
 import torch
 import numpy as np
+
+class OneByOneConvIn3Out2(torch.nn.Module):
+    """ 1x1 convolution with three inputs, two outputs """ 
+    def __init__(self, input_size, output_size):
+        super(OneByOneConvIn3Out2, self).__init__()
+        kernel_size = 1  # 1 by 1
+        self.conv = torch.nn.Conv2d(input_size,
+                                    output_size,
+                                    kernel_size,
+                                    stride=1,
+                                    padding=0,
+                                    bias=False)
+        
+    def forward(self, x):
+        out = self.conv(x)
+        return out
 
 # three channels (or feature maps)
 # 4D matrix, first dimension represents batch-size
@@ -30,25 +44,8 @@ channel_2 = np.array([[2, 1, 1, 0, 1],
                [1, 2, 1, 0, 2]])
 input[0, 2, :, :] = torch.from_numpy(channel_2)
 
-
 print('Input shape:\n', input.shape)
 print('Input:\n', input)
-
-class OneByOneConvIn3Out2(torch.nn.Module):
-    """ 1x1 convolution with three inputs, two outputs """ 
-    def __init__(self, input_size, output_size):
-        super(OneByOneConvIn3Out2, self).__init__()
-        kernel_size = 1  # 1 by 1
-        self.conv = torch.nn.Conv2d(input_size,
-                                    output_size,
-                                    kernel_size,
-                                    stride=1,
-                                    padding=0,
-                                    bias=False)
-        
-    def forward(self, x):
-        out = self.conv(x)
-        return out
 
 convolve = OneByOneConvIn3Out2(3,2) # Instantiate
 
