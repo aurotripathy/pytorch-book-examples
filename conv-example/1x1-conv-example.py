@@ -54,26 +54,16 @@ class OneByOneConvIn3Out2(torch.nn.Module):
 convolve = OneByOneConvIn3Out2(3,2) # Instantiate
 
 # Init w/known weights, replacing the random weights
-w00 = np.array([[1]])
-w01 = np.array([[2]])
-w02 = np.array([[1]])
-
-w10 = np.array([[1]])
-w11 = np.array([[3]])
-w12 = np.array([[1]])
+w0x = np.array([[[1]], [[2]], [[1]]])
+w1x = np.array([[[1]], [[3]], [[1]]])
 
 
 params = convolve.state_dict()
 print('Parameter weights shape:\n', params['conv.weight'].shape)
 print('Reinitialize params')
 
-params['conv.weight'][0, 0, :, :] = torch.from_numpy(w00)
-params['conv.weight'][0, 1, :, :] = torch.from_numpy(w01)
-params['conv.weight'][0, 2, :, :] = torch.from_numpy(w02)
-
-params['conv.weight'][1, 0, :, :] = torch.from_numpy(w10)
-params['conv.weight'][1, 1, :, :] = torch.from_numpy(w11)
-params['conv.weight'][1, 2, :, :] = torch.from_numpy(w12)
+params['conv.weight'][0, :, :, :] = torch.from_numpy(w0x)
+params['conv.weight'][1, :, :, :] = torch.from_numpy(w1x)
 
 # Loading the state dict is absolutely necessary
 convolve.load_state_dict(params)
