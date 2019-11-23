@@ -7,36 +7,35 @@ import numpy as np
 # three channels (or feature maps)
 # 4D matrix, first dimension represents batch-size
 input = torch.zeros([1, 3, 5, 5], dtype=torch.float32)
-# Init inputs with padding all around
-i0 = np.array([[1, 2, 1, 0, 2],
-               [2, 2, 1, 0, 0],
-               [2, 0, 2, 2, 0],
-               [2, 1, 2, 2, 2],
-               [1, 2, 0, 2, 0]])
 
-input[0, 0, :, :] = torch.from_numpy(i0)
+# Init inputs 
+channel_0 = np.array([[1, 2, 1, 0, 2],
+                      [2, 2, 1, 0, 0],
+                      [2, 0, 2, 2, 0],
+                      [2, 1, 2, 2, 2],
+                      [1, 2, 0, 2, 0]])
+input[0, 0, :, :] = torch.from_numpy(channel_0)
 
-i1 = np.array([[2, 1, 2, 2, 1],
-               [2, 1, 0, 1, 0],
-               [1, 0, 0, 0, 2],
-               [2, 2, 2, 0, 1],
-               [1, 0, 1, 2, 2]])
+channel_1 = np.array([[2, 1, 2, 2, 1],
+                      [2, 1, 0, 1, 0],
+                      [1, 0, 0, 0, 2],
+                      [2, 2, 2, 0, 1],
+                      [1, 0, 1, 2, 2]])
+input[0, 1, :, :] = torch.from_numpy(channel_1)
 
-input[0, 1, :, :] = torch.from_numpy(i1)
-
-i2 = np.array([[2, 1, 1, 0, 1],
+channel_2 = np.array([[2, 1, 1, 0, 1],
                [2, 2, 1, 0, 2],
                [0, 0, 0, 1, 2],
                [2, 2, 1, 1, 0],
                [1, 2, 1, 0, 2]])
-input[0, 2, :, :] = torch.from_numpy(i2)
+input[0, 2, :, :] = torch.from_numpy(channel_2)
 
 
 print('Input shape:\n', input.shape)
 print('Input:\n', input)
 
 class OneByOneConvIn3Out2(torch.nn.Module):
-    """ 2D convolution with three inputs, two outputs """ 
+    """ 1x1 convolution with three inputs, two outputs """ 
     def __init__(self, input_size, output_size):
         super(OneByOneConvIn3Out2, self).__init__()
         kernel_size = 1  # 1 by 1
@@ -53,10 +52,9 @@ class OneByOneConvIn3Out2(torch.nn.Module):
 
 convolve = OneByOneConvIn3Out2(3,2) # Instantiate
 
-# Init w/known weights, replacing the random weights
+# Replace random weights w/known weights to get deterministic results
 w0x = np.array([[[1]], [[2]], [[1]]])
 w1x = np.array([[[1]], [[3]], [[1]]])
-
 
 params = convolve.state_dict()
 print('Parameter weights shape:', params['conv.weight'].shape)
@@ -68,10 +66,10 @@ params['conv.weight'][1, :, :, :] = torch.from_numpy(w1x)
 # Loading the state dict is absolutely necessary
 convolve.load_state_dict(params)
 
-print('Initialized state dict(weights and bias):\n',
+print('Initialized state dict:\n',
       convolve.state_dict())
 
-# Apply the forward pass
+# Apply the forward pass and print
 output = convolve(input)
 print('Output shape:\n', output.shape)
 print('Output of 1x1 covolution:\n', output)
