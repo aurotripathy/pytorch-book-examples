@@ -45,19 +45,16 @@ print('Input:\n', input)
 
 convolve = OneByOneConvIn3Out2(3,2) # Instantiate
 
-# We expect the shape of weights to be [2, 3, 1, 1]; 2 x 3 1x1 kernels
-weights = torch.zeros([2, 3, 1, 1], dtype=torch.float32)
-# Replace random weights w/known weights to get deterministic results
+# The shape of weights are [2, 3, 1, 1]; 2 x 3 1x1 kernels
 weights = np.array([[[[1]], [[2]], [[1]]],
                     [[[1]], [[3]], [[1]]]])
 
 params = convolve.state_dict()
-print('Parameter weights shape:', params['conv.weight'].shape)
 
 # Reinitialize params
 params['conv.weight'] = torch.from_numpy(weights)
 
-# Reloading the state dict is absolutely necessary
+# Reloading the state dict is necessary to init w/known weights
 convolve.load_state_dict(params)
 
 print('Initialized state dict:\n',
@@ -66,4 +63,4 @@ print('Initialized state dict:\n',
 # Apply the forward pass and print
 output = convolve(input)
 print('Output shape:\n', output.shape)
-print('Output of 1x1 covolution:\n', output)
+print('Output after 1x1 covolution:\n', output)
