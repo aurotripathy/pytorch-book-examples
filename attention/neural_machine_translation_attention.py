@@ -6,6 +6,10 @@ from tqdm import tqdm
 from babel.dates import format_date
 from nmt_utils import load_dataset, preprocess_data, string_to_int, to_categorical
 from pyt_model import Attn
+import torch.optim as optim
+import torch
+from pudb import set_trace
+
 
 # We'll train the model on a dataset of 10000 human readable dates
 # and their equivalent, standardized, machine readable dates. 
@@ -45,28 +49,63 @@ print("Target after preprocessing (indices):", Y[index])
 print()
 print("Source after preprocessing (one-hot):", Xoh[index])
 print("Target after preprocessing (one-hot):", Yoh[index])
+print("Xoh.shape after preprocessing (one-hot):", Xoh.shape)
+print("Yoh.shape after preprocessing (one-hot):", Yoh.shape)
+print("Human vocab", human_vocab)
+print("Machine vocab", machine_vocab)
+print("Human vocab", human_vocab)
+print("Machine vocab", machine_vocab)
+print("Length Human vocab", len(human_vocab))
+print("Length Machine vocab", len(machine_vocab))
+set_trace()
 
+Xoh = torch.from_numpy(Xoh).float()
+Yoh = torch.from_numpy(Yoh).float()
 
+Xoh = Xoh.transpose(0,1)  # seq, batch, feature
+Yoh = Yoh.transpose(0,1)
+print("Tensor Xoh.shape:", Xoh.size())
+print("Tensor Yoh.shape:", Yoh.size())
+
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+epochs = 50
+batch_size = 100
+n_batches = len(Xoh) // batch_size
 
 n_a = 32  # hidden state size of the Bi-LSTM
 n_s = 64  # hidden state size of the post-attention LSTM
-attn = Attn(Tx, Ty, n_a, n_s, len(human_vocab), len(machine_vocab))
-model = attn()
-???
+model = Attn(Tx, Ty, n_a, n_s, len(human_vocab), len(machine_vocab))
 
-from keras import optimizers
+model = model(Xoh[:, 0:batch_size, :]).to(device)  # Dim = 30 x 100 x 37
 
-opt = optimizers.Adam(lr=0.005, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.001)
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+optimizer = optim.Adam(model.parameters(),
+                       lr=0.005, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.001)
 
 s0 = np.zeros((m, n_s))
 c0 = np.zeros((m, n_s))
 outputs = list(Yoh.swapaxes(0,1))
 
-model.fit([Xoh, s0, c0], outputs, epochs=50, batch_size=100)
+# scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+set_trace()            
+for epoch in range(1, epochs + 1):
+    # TODO remenber to shuffle data
+    for i in range(n_batches):
+        local_Xoh, local_Yoh = Xoh[i*n_batches:(i+1)*n_batches,], Yoh[i*n_batches:(i+1)*n_batches,]
+        local_Xoh, local_Yoh = local_Xoh.to(device), local_Yoh.to(device)
+        optimizer.zero_grad()
+        output = model(data)
+        loss = F.nll_loss(output, local_Yoh)
+        loss.backward()
+        optimizer.step()
+
+
+# model.fit([Xoh, s0, c0], outputs, epochs=50, batch_size=100)
+
+
 model.save('models/attn-model.h5')
 
 
+# Inference
 model.load_weights('models/attn-model.h5')
 
 EXAMPLES = ['Friday 3 May 1979', '5 April 09', '21th of August 2016', 'Tue 10 Jul 2007', 'Saturday May 9 2018', 'March 3 2001', 'March 3rd 2001', '1 March 2001']
