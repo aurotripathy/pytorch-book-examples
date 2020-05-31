@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from custom_softmax import SoftMax
+from pudb import set_trace
 
 # following https://discuss.pytorch.org/t/pytorch-equivalent-of-keras/29412
 
@@ -42,9 +43,13 @@ class Attn(torch.nn.Module):
         ## TF # self.dotor = Dot(axes = 1)
         # self.dotor = torch.mm(axes = 1)
 
-        self.bi_d_lstm = nn.LSTM(self.Tx, self.n_a, bidirectional=True)
+        self.bi_d_lstm = nn.LSTM(self.human_vocab_size, self.n_a, 1,  # in size, out size, num layers
+                                 batch_first=False, bidirectional=True)
         self.post_activation_LSTM_cell = nn.LSTM(100, self.n_s)  # FIX input
         self.output_layer = nn.Linear(100, machine_vocab_size)  # Fix
+
+        self.s = Input(shape=(self.n_s,))
+        self.c = Input(shape=(self.n_s,))
 
     def _one_step_attention(self, a, s_prev):
         """
@@ -78,31 +83,25 @@ class Attn(torch.nn.Module):
         # context = self.dotor([alphas, a])
         context = torch.mm(alphas, a)
 
+
         return context
 
 
-    def forward(self):
+    def forward(self, x):
         """
         Arguments:
-        None
+        X -- input
         Returns:
         model -- Pytorch model instance
         """
-
-        # Define the inputs of your model with a shape (Tx,)
-        # Define s0 and c0, initial hidden state for the decoder LSTM of shape (n_s,)
-        X = Input(shape=(self.Tx, self.human_vocab_size), name= 'X')
-        s0 = Input(shape=(self.n_s,), name='s0')
-        c0 = Input(shape=(self.n_s,), name='c0')
-        s = s0
-        c = c0
-
+        set_trace()
         # Initialize empty list of outputs
         outputs = []
 
         # Step 1: Define your pre-attention Bi-LSTM. Remember to use return_sequences=True. (≈ 1 line)
         ## TF # a = Bidirectional(LSTM(self.n_a, return_sequences=True, name='bidirectional_1'), merge_mode='concat')(X)
-        a = self.bi_d_lstm(X)
+        # Bi-LSTM input is of shape (seq_len, batch, input_size) 30, 100, 37
+        a = self.bi_d_lstm(x)
 
         # Step 2: Iterate for Ty steps
         for t in range(self.Ty):
