@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
+from pudb import set_trace
 
 torch.manual_seed(1)
 
@@ -28,3 +28,13 @@ class LSTMTagger(nn.Module):
         tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
         tag_scores = F.log_softmax(tag_space, dim=1)
         return tag_scores
+
+
+set_trace()
+
+rnn = nn.LSTM(10, 20, 2)
+input = torch.randn(5, 3, 10)
+# h0 = torch.randn(2, 3, 20)
+# c0 = torch.randn(2, 3, 20)
+# output, (hn, cn) = rnn(input, (h0, c0))
+output, (hn, cn) = rnn(input)
