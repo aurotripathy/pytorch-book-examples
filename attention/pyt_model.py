@@ -20,14 +20,14 @@ class Attn(torch.nn.Module):
         self.Ty = Ty
         self.Tx = Tx
         self.n_a = n_a
-        self.n_s = n_s
+        self.n_state = n_s
         self.human_vocab_size = human_vocab_size
         self.machine_vocab_size = machine_vocab_size
         ## TF # self.repeator = RepeatVector(Tx)  # Repeats the input Tx times.
         # self.repeator = torch.repeat(Tx)
         
         ## TF # self.concatenator = Concatenate(axis=-1)
-        # self.concatenator = cat(axis=-1)
+        # self.concatenator = torch.cat(axis=-1)  # not needed
         
         ## TF # self.densor1 = Dense(10, activation = "tanh", name='Dense1')
         self.densor1 = nn.Linear(100, 10)  # TBD input?? 
@@ -45,11 +45,11 @@ class Attn(torch.nn.Module):
 
         self.bi_d_lstm = nn.LSTM(self.human_vocab_size, self.n_a, 1,  # in size, out size, num layers
                                  batch_first=False, bidirectional=True)
-        self.post_activation_LSTM_cell = nn.LSTM(100, self.n_s)  # FIX input
+        self.post_activation_LSTM_cell = nn.LSTM(100, self.n_state)  # FIX input
         self.output_layer = nn.Linear(100, machine_vocab_size)  # Fix
 
-        self.s = Input(shape=(self.n_s,))
-        self.c = Input(shape=(self.n_s,))
+        self.state = torch.zeros(self.n_state,)
+        self.context = torch.zeros(self.n_state,)
 
     def _one_step_attention(self, a, s_prev):
         """
@@ -67,11 +67,11 @@ class Attn(torch.nn.Module):
         # Use repeator to repeat s_prev to be of shape (m, Tx, n_s) so that you can concatenate it with all hidden states "a" (≈ 1 line)
         # s_prev = self.repeator(s_prev)
         print('s_prev shape', s_prev.shape)
-        s_prev = s_prev.repeat(Tx)
+        s_prev = s_prev.repeat(self.Tx)
         print('s_prev shape', s_prev.shape)
         
         # Use concatenator to concatenate a and s_prev on the last axis (≈ 1 line)
-        concat = self.concatenator([a, s_prev])
+        concat = torch.cat((a, s_prev))
 
         # Use densor1 to propagate concat through a small fully-connected neural network to compute the "intermediate energies" variable e. (≈1 lines)
         e = F.tanh(self.densor1(concat))
@@ -101,13 +101,13 @@ class Attn(torch.nn.Module):
         # Step 1: Define your pre-attention Bi-LSTM. Remember to use return_sequences=True. (≈ 1 line)
         ## TF # a = Bidirectional(LSTM(self.n_a, return_sequences=True, name='bidirectional_1'), merge_mode='concat')(X)
         # Bi-LSTM input is of shape (seq_len, batch, input_size) 30, 100, 37
-        a = self.bi_d_lstm(x)
+        a, _ = self.bi_d_lstm(x)
 
         # Step 2: Iterate for Ty steps
         for t in range(self.Ty):
 
             # Step 2.A: Perform one step of the attention mechanism to get back the context vector at step t (≈ 1 line)
-            context = self._one_step_attention(a, s)
+            context = self._one_step_attention(a, self.state)
 
             # Step 2.B: Apply the post-attention LSTM cell to the "context" vector.
             # Don't forget to pass: initial_state = [hidden state, cell state] (≈ 1 line)
