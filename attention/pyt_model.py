@@ -7,7 +7,7 @@ from pudb import set_trace
 # following https://discuss.pytorch.org/t/pytorch-equivalent-of-keras/29412
 
 class Attn(torch.nn.Module):
-    def __init__(self, Tx, Ty, n_a, n_s, human_vocab_size, machine_vocab_size):
+    def __init__(self, Tx, Ty, n_a, n_s, human_vocab_size, machine_vocab_size, batch_size):
         super(Attn, self).__init__()
         """
         Tx -- length of the input sequence
@@ -23,6 +23,7 @@ class Attn(torch.nn.Module):
         self.n_state = n_s
         self.human_vocab_size = human_vocab_size
         self.machine_vocab_size = machine_vocab_size
+        self.batch_size = batch_size
         ## TF # self.repeator = RepeatVector(Tx)  # Repeats the input Tx times.
         # self.repeator = torch.repeat(Tx)
         
@@ -30,7 +31,7 @@ class Attn(torch.nn.Module):
         # self.concatenator = torch.cat(axis=-1)  # not needed
         
         ## TF # self.densor1 = Dense(10, activation = "tanh", name='Dense1')
-        self.densor1 = nn.Linear(100, 10)  # TBD input?? 
+        self.densor1 = nn.Linear(128, 10)  # TBD input?? 
 
         ## TF # self.densor2 = Dense(1, activation = "relu", name='Dense2')
         self.densor2 = nn.Linear(10, 1)
@@ -48,7 +49,7 @@ class Attn(torch.nn.Module):
         self.post_activation_LSTM_cell = nn.LSTM(100, self.n_state)  # FIX input
         self.output_layer = nn.Linear(100, machine_vocab_size)  # Fix
 
-        self.state = torch.zeros(self.n_state,)
+        self.state = torch.zeros(self.batch_size, self.n_state,)
         self.context = torch.zeros(self.n_state,)
 
     def _one_step_attention(self, a, s_prev):
@@ -66,15 +67,19 @@ class Attn(torch.nn.Module):
 
         # Use repeator to repeat s_prev to be of shape (m, Tx, n_s) so that you can concatenate it with all hidden states "a" (≈ 1 line)
         # s_prev = self.repeator(s_prev)
+        set_trace()
         print('s_prev shape', s_prev.shape)
-        s_prev = s_prev.repeat(self.Tx)
+        s_prev = s_prev.repeat(self.Tx, 1,1)
         print('s_prev shape', s_prev.shape)
         
         # Use concatenator to concatenate a and s_prev on the last axis (≈ 1 line)
-        concat = torch.cat((a, s_prev))
+        concat = torch.cat((a, s_prev), dim=-1)
+        print('concat shape', concat.shape)
 
         # Use densor1 to propagate concat through a small fully-connected neural network to compute the "intermediate energies" variable e. (≈1 lines)
         e = F.tanh(self.densor1(concat))
+        print('e shape', e.shape)
+
         # Use densor2 to propagate e through a small fully-connected neural network to compute the "energies" variable energies. (≈1 lines)
         energies = F.relu(self.densor2(e))
         # Use "activator" on "energies" to compute the attention weights "alphas" (≈ 1 line)
