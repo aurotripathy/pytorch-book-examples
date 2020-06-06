@@ -57,7 +57,7 @@ print("Human vocab", human_vocab)
 print("Machine vocab", machine_vocab)
 print("Length Human vocab", len(human_vocab))
 print("Length Machine vocab", len(machine_vocab))
-set_trace()
+
 
 Xoh = torch.from_numpy(Xoh).float()
 Yoh = torch.from_numpy(Yoh).float()
@@ -74,7 +74,7 @@ n_batches = len(Xoh) // batch_size
 
 n_a = 32  # hidden state size of the Bi-LSTM
 n_s = 64  # hidden state size of the post-attention LSTM
-model = Attn(Tx, Ty, n_a, n_s, len(human_vocab), len(machine_vocab))
+model = Attn(Tx, Ty, n_a, n_s, len(human_vocab), len(machine_vocab), batch_size)
 
 model = model(Xoh[:, 0:batch_size, :]).to(device)  # Dim = 30 x 100 x 37
 
@@ -86,7 +86,7 @@ c0 = np.zeros((m, n_s))
 outputs = list(Yoh.swapaxes(0,1))
 
 # scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-set_trace()            
+
 for epoch in range(1, epochs + 1):
     # TODO remenber to shuffle data
     for i in range(n_batches):
