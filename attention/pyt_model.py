@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from custom_softmax import SoftMax
+from custom_softmax import SoftMax, align, dot
 from pudb import set_trace
 
 # following https://discuss.pytorch.org/t/pytorch-equivalent-of-keras/29412
@@ -46,11 +46,15 @@ class Attn(torch.nn.Module):
 
         self.bi_d_lstm = nn.LSTM(self.human_vocab_size, self.n_a, 1,  # in size, out size, num layers
                                  batch_first=False, bidirectional=True)
-        self.post_activation_LSTM_cell = nn.LSTM(100, self.n_state)  # FIX input
-        self.output_layer = nn.Linear(100, machine_vocab_size)  # Fix
 
-        self.state = torch.zeros(self.batch_size, self.n_state,)
-        self.context = torch.zeros(self.n_state,)
+
+        self.post_activation_LSTM_cell = nn.LSTM(self.n_state, self.n_state,
+                                                 batch_first=True, bidirectional=False)
+
+        self.output_layer = nn.Linear(self.n_state, machine_vocab_size)  # Fix
+
+        self.state = torch.zeros(1, self.batch_size, self.n_state)
+        self.context = torch.zeros(1,self.batch_size, self.n_state,)
 
     def _one_step_attention(self, a, s_prev):
         """
@@ -67,7 +71,6 @@ class Attn(torch.nn.Module):
 
         # Use repeator to repeat s_prev to be of shape (m, Tx, n_s) so that you can concatenate it with all hidden states "a" (≈ 1 line)
         # s_prev = self.repeator(s_prev)
-        set_trace()
         print('s_prev shape', s_prev.shape)
         s_prev = s_prev.repeat(self.Tx, 1,1)
         print('s_prev shape', s_prev.shape)
@@ -83,10 +86,14 @@ class Attn(torch.nn.Module):
         # Use densor2 to propagate e through a small fully-connected neural network to compute the "energies" variable energies. (≈1 lines)
         energies = F.relu(self.densor2(e))
         # Use "activator" on "energies" to compute the attention weights "alphas" (≈ 1 line)
-        alphas = self.activator(energies)
+        # alphas = self.activator(energies)
+        alphas = F.softmax(energies)
+        print('alphas shape', alphas.shape)
+        print('a shape', a.size())
         # Use dotor together with "alphas" and "a" to compute the context vector to be given to the next (post-attention) LSTM-cell (≈ 1 line)
         # context = self.dotor([alphas, a])
-        context = torch.mm(alphas, a)
+        context =  torch.matmul(alphas.transpose(1,0).transpose(2,1), a.transpose(1,0))
+        # context = torch.mm(alphas, a)
 
 
         return context
@@ -99,7 +106,6 @@ class Attn(torch.nn.Module):
         Returns:
         model -- Pytorch model instance
         """
-        set_trace()
         # Initialize empty list of outputs
         outputs = []
 
@@ -112,19 +118,22 @@ class Attn(torch.nn.Module):
         for t in range(self.Ty):
 
             # Step 2.A: Perform one step of the attention mechanism to get back the context vector at step t (≈ 1 line)
-            context = self._one_step_attention(a, self.state)
+            attn_context = self._one_step_attention(a, self.state)
 
             # Step 2.B: Apply the post-attention LSTM cell to the "context" vector.
             # Don't forget to pass: initial_state = [hidden state, cell state] (≈ 1 line)
-            s, _, c = self.post_activation_LSTM_cell(context, initial_state = [s, c])
+            # set_trace()
+            _, (self.state, self.context) = self.post_activation_LSTM_cell(attn_context, (self.state, self.context))
 
             # Step 2.C: Apply Dense layer to the hidden state output of the post-attention LSTM (≈ 1 line)
-            out = F.softmax(self.output_layer(s))
+            out = F.softmax(self.output_layer(self.state))
+            print('out shape', out.size())
 
             # Step 2.D: Append "out" to the "outputs" list (≈ 1 line)
             outputs.append(out)
+            print('outputs length', len(outputs), 'outputs element type', outputs[0].type())
 
         # Step 3: Create model instance taking three inputs and returning the list of outputs. (≈ 1 line)
-        model = Model(inputs=(X, s0, c0), outputs=outputs)
+        # model = Model(inputs=(X, s0, c0), outputs=outputs)
 
-        return model
+        return torch.stack(outputs)
