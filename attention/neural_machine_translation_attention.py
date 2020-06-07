@@ -8,6 +8,7 @@ from nmt_utils import load_dataset, preprocess_data, string_to_int, to_categoric
 from pyt_model import Attn
 import torch.optim as optim
 import torch
+import torch.nn.functional as F
 from pudb import set_trace
 
 
@@ -70,30 +71,30 @@ print("Tensor Yoh.shape:", Yoh.size())
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 epochs = 50
 batch_size = 100
-n_batches = len(Xoh) // batch_size
+n_batches = Xoh.size()[1] // batch_size
 
 n_a = 32  # hidden state size of the Bi-LSTM
 n_s = 64  # hidden state size of the post-attention LSTM
 model = Attn(Tx, Ty, n_a, n_s, len(human_vocab), len(machine_vocab), batch_size)
 
-model = model(Xoh[:, 0:batch_size, :]).to(device)  # Dim = 30 x 100 x 37
+output = model(Xoh[:, 0:batch_size, :])  # Dim = 30 x 100 x 37
 
 optimizer = optim.Adam(model.parameters(),
-                       lr=0.005, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.001)
+                       lr=0.005, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.001)
 
 s0 = np.zeros((m, n_s))
 c0 = np.zeros((m, n_s))
-outputs = list(Yoh.swapaxes(0,1))
+outputs = list(Yoh.transpose(0,1))  # was swapaxes
 
 # scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-
 for epoch in range(1, epochs + 1):
     # TODO remenber to shuffle data
     for i in range(n_batches):
-        local_Xoh, local_Yoh = Xoh[i*n_batches:(i+1)*n_batches,], Yoh[i*n_batches:(i+1)*n_batches,]
-        local_Xoh, local_Yoh = local_Xoh.to(device), local_Yoh.to(device)
+        local_Xoh, local_Yoh = Xoh[:, i*n_batches:(i+1)*n_batches,], Yoh[:, i*n_batches:(i+1)*n_batches,]
+        # local_Xoh, local_Yoh = local_Xoh.to(device), local_Yoh.to(device)
         optimizer.zero_grad()
-        output = model(data)
+        set_trace()
+        output = model(local_Xoh)
         loss = F.nll_loss(output, local_Yoh)
         loss.backward()
         optimizer.step()
@@ -102,8 +103,7 @@ for epoch in range(1, epochs + 1):
 # model.fit([Xoh, s0, c0], outputs, epochs=50, batch_size=100)
 
 
-model.save('models/attn-model.h5')
-
+torch.save(model.state_dict(), 'models/attn-model.pt')
 
 # Inference
 model.load_weights('models/attn-model.h5')
