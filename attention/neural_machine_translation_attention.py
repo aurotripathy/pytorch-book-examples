@@ -8,7 +8,7 @@ from nmt_utils import load_dataset, preprocess_data, string_to_int, to_categoric
 from pyt_model import Attn
 import torch.optim as optim
 import torch
-import torch.nn.functional as F
+import torch.nn as nn
 from pudb import set_trace
 
 
@@ -81,6 +81,7 @@ output = model(Xoh[:, 0:batch_size, :])  # Dim = 30 x 100 x 37
 
 optimizer = optim.Adam(model.parameters(),
                        lr=0.005, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.001)
+criterion = nn.CrossEntropyLoss()
 
 s0 = np.zeros((m, n_s))
 c0 = np.zeros((m, n_s))
@@ -95,7 +96,7 @@ for epoch in range(1, epochs + 1):
         optimizer.zero_grad()
         set_trace()
         output = model(local_Xoh)
-        loss = F.nll_loss(output, local_Yoh)
+        loss = criterion(output, local_Yoh)
         loss.backward()
         optimizer.step()
 
