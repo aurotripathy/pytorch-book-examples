@@ -89,13 +89,14 @@ outputs = list(Yoh.transpose(0,1))  # was swapaxes
 
 # scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
 for epoch in range(1, epochs + 1):
-    # TODO remenber to shuffle data
+    # TODO remember to shuffle data
     for i in range(n_batches):
         local_Xoh, local_Yoh = Xoh[:, i*n_batches:(i+1)*n_batches,], Yoh[:, i*n_batches:(i+1)*n_batches,]
         # local_Xoh, local_Yoh = local_Xoh.to(device), local_Yoh.to(device)
         optimizer.zero_grad()
         set_trace()
         output = model(local_Xoh)
+        # TODO - https://discuss.pytorch.org/t/loss-functions-for-batches/20488
         loss = criterion(output, local_Yoh)
         loss.backward()
         optimizer.step()
