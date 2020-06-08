@@ -70,3 +70,4 @@ sm = SoftMax(0)
 print('torch.forward\n', sm.forward(data))
 print('torch sigmoid thru forward prop\n', sm(data))
 print('Done!')
+
