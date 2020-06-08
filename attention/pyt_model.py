@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from custom_softmax import SoftMax, align, dot
+from custom_softmax import SoftMax
 from pudb import set_trace
 
 # following https://discuss.pytorch.org/t/pytorch-equivalent-of-keras/29412
@@ -114,5 +114,5 @@ class Attn(torch.nn.Module):
 
         # Step 3: Create model instance taking three inputs and returning the list of outputs. (≈ 1 line)
         # model = Model(inputs=(X, s0, c0), outputs=outputs)
-
+        set_trace()
         return torch.stack(outputs)
