@@ -115,4 +115,4 @@ class Attn(torch.nn.Module):
         # Step 3: Create model instance taking three inputs and returning the list of outputs. (≈ 1 line)
         # model = Model(inputs=(X, s0, c0), outputs=outputs)
         set_trace()
-        return torch.stack(outputs)
+        return torch.stack(outputs).resize(10, 100, 11)  # TODO remove hard coding
