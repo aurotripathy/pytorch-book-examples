@@ -77,7 +77,7 @@ n_a = 32  # hidden state size of the Bi-LSTM
 n_s = 64  # hidden state size of the post-attention LSTM
 model = Attn(Tx, Ty, n_a, n_s, len(human_vocab), len(machine_vocab), batch_size)
 
-output = model(Xoh[:, 0:batch_size, :])  # Dim = 30 x 100 x 37
+outputs = model(Xoh[:, 0:batch_size, :])  # Dim = 30 x 100 x 37
 
 optimizer = optim.Adam(model.parameters(),
                        lr=0.005, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.001)
@@ -85,7 +85,6 @@ criterion = nn.CrossEntropyLoss()
 
 s0 = np.zeros((m, n_s))
 c0 = np.zeros((m, n_s))
-outputs = list(Yoh.transpose(0,1))  # was swapaxes
 
 # scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
 for epoch in range(1, epochs + 1):
@@ -95,14 +94,14 @@ for epoch in range(1, epochs + 1):
         # local_Xoh, local_Yoh = local_Xoh.to(device), local_Yoh.to(device)
         optimizer.zero_grad()
         set_trace()
-        output = model(local_Xoh)
+        outputs = model(local_Xoh).transpose(1,0).transpose(2,1)
+        print('shape of outputs', outputs.size())
         # TODO - https://discuss.pytorch.org/t/loss-functions-for-batches/20488
-        loss = criterion(output, local_Yoh)
-        loss.backward()
+        targets = local_Yoh.argmax(2).transpose(1,0)
+        print('shape of targets', targets.size())
+        loss = criterion(outputs, targets)
+        loss.backward(retain_graph=True)
         optimizer.step()
-
-
-# model.fit([Xoh, s0, c0], outputs, epochs=50, batch_size=100)
 
 
 torch.save(model.state_dict(), 'models/attn-model.pt')
