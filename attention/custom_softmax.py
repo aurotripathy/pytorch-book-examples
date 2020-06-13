@@ -52,22 +52,22 @@ def sig(np_data):
     
 # set_trace()
 data = torch.randn((5,5))
-print('tensor data\n', data)
+# print('tensor data\n', data)
 np_data = data.numpy()
-print('numpy data\n', np_data)
+# print('numpy data\n', np_data)
 sig_along_axis =np.apply_along_axis(sig, 1, np_data) 
-print('numpy sigmoid along axis 1\n', sig_along_axis)
+# print('numpy sigmoid along axis 1\n', sig_along_axis)
 
 sig_along_axis =np.apply_along_axis(sig, 0, np_data) 
-print('numpy sigmoid along axis 0\n', sig_along_axis)
+# print('numpy sigmoid along axis 0\n', sig_along_axis)
 
-
-sm = SoftMax(1)
-print('torch.forward\n', sm.forward(data))
-print('torch sigmoid thru forward prop\n', sm(data))
-print('Done!')
-sm = SoftMax(0)
-print('torch.forward\n', sm.forward(data))
-print('torch sigmoid thru forward prop\n', sm(data))
-print('Done!')
+if __name__  == "__main__":
+    sm = SoftMax(1)
+    print('torch.forward\n', sm.forward(data))
+    print('torch sigmoid thru forward prop\n', sm(data))
+    print('Done!')
+    sm = SoftMax(0)
+    print('torch.forward\n', sm.forward(data))
+    print('torch sigmoid thru forward prop\n', sm(data))
+    print('Done!')
 
