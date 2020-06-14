@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from custom_softmax import SoftMax
+# from custom_softmax import SoftMax
 from pudb import set_trace
 
 # following https://discuss.pytorch.org/t/pytorch-equivalent-of-keras/29412
