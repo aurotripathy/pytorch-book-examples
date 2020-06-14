@@ -64,9 +64,9 @@ Xoh = torch.from_numpy(Xoh).float()
 Yoh = torch.from_numpy(Yoh).float()
 
 Xoh = Xoh.transpose(0,1)  # seq, batch, feature
-Yoh = Yoh.transpose(0,1)
+Yoh = np.transpose(Yoh, (1, 0, 2))
 print("Tensor Xoh.shape:", Xoh.size())
-print("Tensor Yoh.shape:", Yoh.size())
+print("Numpy  Yoh.shape:", Yoh.size())
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 epochs = 50
@@ -89,18 +89,19 @@ c0 = np.zeros((m, n_s))
 # scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
 for epoch in range(1, epochs + 1):
     # TODO remember to shuffle data
+    model.train()  # Turn on the train mode
     for i in range(n_batches):
         local_Xoh, local_Yoh = Xoh[:, i*n_batches:(i+1)*n_batches,], Yoh[:, i*n_batches:(i+1)*n_batches,]
         # local_Xoh, local_Yoh = local_Xoh.to(device), local_Yoh.to(device)
         optimizer.zero_grad()
-        set_trace()
         outputs = model(local_Xoh).transpose(1,0).transpose(2,1)
         print('shape of outputs', outputs.size())
         # TODO - https://discuss.pytorch.org/t/loss-functions-for-batches/20488
         targets = local_Yoh.argmax(2).transpose(1,0)
-        print('shape of targets', targets.size())
+        print('numpy shape of targets', targets.shape)
         loss = criterion(outputs, targets)
-        loss.backward(retain_graph=True)
+        print('---loss---', loss)
+        loss.backward()
         optimizer.step()
 
 
