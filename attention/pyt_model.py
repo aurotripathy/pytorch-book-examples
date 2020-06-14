@@ -94,16 +94,17 @@ class Attn(torch.nn.Module):
         a, _ = self.bi_d_lstm(x)  # output shape (seq_len, batch, num_directions * hidden_size) 30, 100, 32*2
 
         # Step 2: Iterate for Ty steps
-        for t in range(self.Ty):
+        for _ in range(self.Ty):
 
             # Step 2.A: Perform one step of the attention mechanism to get back the context vector at step t
             attn_context = self._one_step_attention(a, self.c_state)
             print('attn_context shape', attn_context.shape)
-
+            set_trace()
+            
             # Step 2.B: Apply the post-attention LSTM cell to the "context" vector.
             # Don't forget to pass: initial_state = [hidden state, cell state] (≈ 1 line)
-            (self.h_state, self.c_state) = self.post_activation_LSTM_cell(attn_context.reshape(self.batch_size, self.n_state),
-                                                                           (self.h_state, self.c_state))
+            (self.h_state, self.c_state) = self.post_activation_LSTM_cell(attn_context.view(self.batch_size, self.n_state),
+                                                                          (self.h_state, self.c_state))
 
             # Step 2.C: Apply Dense layer to the hidden state output of the post-attention LSTM (≈ 1 line)
             out = F.softmax(self.output_layer(self.h_state))
