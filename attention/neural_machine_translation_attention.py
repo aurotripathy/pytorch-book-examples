@@ -9,7 +9,6 @@ from pyt_model import Attn
 import torch.optim as optim
 import torch
 import torch.nn as nn
-from pudb import set_trace
 
 
 # We'll train the model on a dataset of 10000 human readable dates
@@ -59,7 +58,6 @@ print("Machine vocab", machine_vocab)
 print("Length Human vocab", len(human_vocab))
 print("Length Machine vocab", len(machine_vocab))
 
-set_trace()
 Xoh = torch.from_numpy(Xoh).float()
 Yoh = torch.from_numpy(Yoh).float()
 
