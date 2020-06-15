@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-# from custom_softmax import SoftMax
-from pudb import set_trace
 
 # following https://discuss.pytorch.org/t/pytorch-equivalent-of-keras/29412
 
@@ -30,7 +28,7 @@ class Attn(torch.nn.Module):
         self.densor2 = nn.Linear(10, 1)
         
 
-        self.bi_d_lstm = nn.LSTM(self.human_vocab_size, self.n_a, 1,  # in size, out size, num layers
+        self.bi_d_lstm = nn.LSTM(self.human_vocab_size, self.n_a, 1,  # in-size, out-size, num layers
                                  batch_first=False, bidirectional=True)
 
 
@@ -91,7 +89,7 @@ class Attn(torch.nn.Module):
         outputs = []
 
         # Step 1: Define your pre-attention Bi-LSTM. 
-        a, _ = self.bi_d_lstm(x)  # output shape (seq_len, batch, num_directions * hidden_size) 30, 100, 32*2
+        a, _ = self.bi_d_lstm(x.view(self.Tx, self.batch_size, -1))  # output shape (seq_len, batch, num_directions * hidden_size) 30, 100, 32*2
 
         # Step 2: Iterate for Ty steps
         for _ in range(self.Ty):
@@ -99,7 +97,6 @@ class Attn(torch.nn.Module):
             # Step 2.A: Perform one step of the attention mechanism to get back the context vector at step t
             attn_context = self._one_step_attention(a, self.c_state)
             print('attn_context shape', attn_context.shape)
-            set_trace()
             
             # Step 2.B: Apply the post-attention LSTM cell to the "context" vector.
             # Don't forget to pass: initial_state = [hidden state, cell state] (≈ 1 line)
