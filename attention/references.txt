@@ -3,3 +3,6 @@ https://github.com/gemaatienza/Deep-Learning-Coursera/blob/master/5.%20Sequence%
 
 Helpful link
 https://medium.com/@galhever/sentiment-analysis-with-pytorch-part-4-lstm-bilstm-model-84447f6c4525
+
+did we cat the oupput of the bi-latm?
+cat = torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1)
