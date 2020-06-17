@@ -1,2 +1,5 @@
 Original Keras implementation (with diagram)
 https://github.com/gemaatienza/Deep-Learning-Coursera/blob/master/5.%20Sequence%20Models/Neural%20machine%20translation%20with%20attention%20-%20v4.ipynb
+
+Helpful link
+https://medium.com/@galhever/sentiment-analysis-with-pytorch-part-4-lstm-bilstm-model-84447f6c4525
