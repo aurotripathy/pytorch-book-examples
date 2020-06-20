@@ -54,18 +54,18 @@ class Attn(torch.nn.Module):
         """
 
         print('s_prev shape', s_prev.shape)
-        s_prev = s_prev.repeat(self.Tx, 1,1)
-        print('s_prev shape', s_prev.shape)
+        s_prev_repeat = s_prev.repeat(self.Tx, 1, 1)
+        print('s_prev shape', s_prev_repeat.shape)
         
-        concat = torch.cat((a, s_prev), dim=-1)
+        concat = torch.cat((a, s_prev_repeat), dim=-1)
         print('concat shape', concat.shape)
 
         # Use densor1 to propagate concat through a small fully-connected neural network to compute the "intermediate energies" variable e. (≈1 lines)
-        e = F.tanh(self.densor1(concat))
-        print('e shape', e.shape)
+        intermediate_e = F.tanh(self.densor1(concat))
+        print('interdediate e shape', intermediate_e.shape)
 
         # Use densor2 to propagate e through a small fully-connected neural network to compute the "energies" variable energies. (≈1 lines)
-        energies = F.relu(self.densor2(e))
+        energies = F.relu(self.densor2(intermediate_e))
 
         # Use "activator" on "energies" to compute the attention weights "alphas" (≈ 1 line)
         alphas = F.softmax(energies)
@@ -73,7 +73,8 @@ class Attn(torch.nn.Module):
         print('a shape', a.size())
 
         # Use dotor together with "alphas" and "a" to compute the context vector to be given to the next (post-attention) LSTM-cell (≈ 1 line)
-        context =  torch.matmul(alphas.transpose(1,0).transpose(2,1), a.transpose(1,0))
+        context = torch.bmm(alphas.view(self.batch_size, 1, -1),
+                            a.view(self.batch_size, self.Tx, -1))
 
         return context
 
@@ -89,7 +90,7 @@ class Attn(torch.nn.Module):
         outputs = []
 
         # Step 1: Define your pre-attention Bi-LSTM. 
-        a, _ = self.bi_d_lstm(x.view(self.Tx, self.batch_size, -1))  # output shape (seq_len, batch, num_directions * hidden_size) 30, 100, 32*2
+        a, (bi_h0, bi_c0) = self.bi_d_lstm(x.view(self.Tx, self.batch_size, -1))  # output shape (seq_len, batch, num_directions * hidden_size) 30, 100, 32*2
 
         # Step 2: Iterate for Ty steps
         for _ in range(self.Ty):
@@ -114,4 +115,4 @@ class Attn(torch.nn.Module):
         # Step 3: Create model instance taking three inputs and returning the list of outputs. (≈ 1 line)
         # model = Model(inputs=(X, s0, c0), outputs=outputs)
 
-        return torch.stack(outputs).resize(10, 100, 11)  # TODO remove hard coding
+        return torch.stack(outputs)  # torch.Size([10, 100, 11])
