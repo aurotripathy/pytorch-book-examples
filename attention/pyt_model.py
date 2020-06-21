@@ -28,7 +28,7 @@ class Attn(torch.nn.Module):
         self.densor2 = nn.Linear(10, 1)
         
 
-        self.bi_d_lstm = nn.LSTM(self.human_vocab_size, self.n_a, 1,  # in-size, out-size, num layers
+        self.bi_d_lstm = nn.LSTM(input_size=self.human_vocab_size, hidden_size=self.n_a, num_layers=1,  # in-size, out-size, num layers
                                  batch_first=False, bidirectional=True)
 
 
@@ -61,20 +61,21 @@ class Attn(torch.nn.Module):
         print('concat shape', concat.shape)
 
         # Use densor1 to propagate concat through a small fully-connected neural network to compute the "intermediate energies" variable e. (≈1 lines)
-        intermediate_e = F.tanh(self.densor1(concat))
+        intermediate_e = torch.tanh(self.densor1(concat))
         print('interdediate e shape', intermediate_e.shape)
 
         # Use densor2 to propagate e through a small fully-connected neural network to compute the "energies" variable energies. (≈1 lines)
         energies = F.relu(self.densor2(intermediate_e))
 
         # Use "activator" on "energies" to compute the attention weights "alphas" (≈ 1 line)
-        alphas = F.softmax(energies)
+        alphas = F.softmax(energies, dim=0)  # seq dim
         print('alphas shape', alphas.shape)
         print('a shape', a.size())
 
+        alpha_mod = alphas.view(self.batch_size, 1, -1)
+        a_mod = a.view(self.batch_size, self.Tx, -1)
         # Use dotor together with "alphas" and "a" to compute the context vector to be given to the next (post-attention) LSTM-cell (≈ 1 line)
-        context = torch.bmm(alphas.view(self.batch_size, 1, -1),
-                            a.view(self.batch_size, self.Tx, -1))
+        context = torch.bmm(alpha_mod, a_mod)
 
         return context
 
@@ -90,7 +91,7 @@ class Attn(torch.nn.Module):
         outputs = []
 
         # Step 1: Define your pre-attention Bi-LSTM. 
-        a, (bi_h0, bi_c0) = self.bi_d_lstm(x.view(self.Tx, self.batch_size, -1))  # output shape (seq_len, batch, num_directions * hidden_size) 30, 100, 32*2
+        a, _ = self.bi_d_lstm(x)  # output shape (seq_len, batch, num_directions * hidden_size) 30, 100, 32*2
 
         # Step 2: Iterate for Ty steps
         for _ in range(self.Ty):
@@ -105,7 +106,7 @@ class Attn(torch.nn.Module):
                                                                           (self.h_state, self.c_state))
 
             # Step 2.C: Apply Dense layer to the hidden state output of the post-attention LSTM (≈ 1 line)
-            out = F.softmax(self.output_layer(self.h_state))
+            out = F.softmax(self.output_layer(self.h_state), dim=0)
             print('output_layer shape', out.size())
 
             # Step 2.D: Append "out" to the "outputs" list (≈ 1 line)
@@ -115,4 +116,4 @@ class Attn(torch.nn.Module):
         # Step 3: Create model instance taking three inputs and returning the list of outputs. (≈ 1 line)
         # model = Model(inputs=(X, s0, c0), outputs=outputs)
 
-        return torch.stack(outputs)  # torch.Size([10, 100, 11])
+        return torch.stack(outputs).view(self.batch_size, 11, -1)  # torch.Size([10, 100, 11])
