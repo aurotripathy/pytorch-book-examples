@@ -113,7 +113,4 @@ class Attn(torch.nn.Module):
             outputs.append(out)
             print('outputs length', len(outputs), 'outputs element type', outputs[0].type())
 
-        # Step 3: Create model instance taking three inputs and returning the list of outputs. (≈ 1 line)
-        # model = Model(inputs=(X, s0, c0), outputs=outputs)
-
         return torch.stack(outputs).view(self.batch_size, 11, -1)  # torch.Size([10, 100, 11])
