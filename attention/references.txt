@@ -6,3 +6,6 @@ https://medium.com/@galhever/sentiment-analysis-with-pytorch-part-4-lstm-bilstm-
 
 did we cat the oupput of the bi-latm?
 cat = torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1)
+
+loss func with permute
+https://discuss.pytorch.org/t/loss-function-format-for-sequence-ner-pos-tagging/57548
