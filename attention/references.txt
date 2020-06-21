@@ -9,3 +9,7 @@ cat = torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1)
 
 loss func with permute
 https://discuss.pytorch.org/t/loss-function-format-for-sequence-ner-pos-tagging/57548
+
+https://www.kaggle.com/dannykliu/lstm-with-attention-clr-in-pytorch
+
+https://pytorch-nlp-tutorial-ny2018.readthedocs.io/en/latest/day2/patterns/attention.html
