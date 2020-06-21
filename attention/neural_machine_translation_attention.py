@@ -55,8 +55,8 @@ print("Human vocab", human_vocab)
 print("Machine vocab", machine_vocab)
 print("Human vocab", human_vocab)
 print("Machine vocab", machine_vocab)
-print("Length Human vocab", len(human_vocab))
-print("Length Machine vocab", len(machine_vocab))
+print("Length Human vocab", len(human_vocab))  # 37
+print("Length Machine vocab", len(machine_vocab))  # 11
 
 Xoh = torch.from_numpy(Xoh).float()
 Yoh = torch.from_numpy(Yoh).float()
@@ -70,7 +70,7 @@ epochs = 50
 batch_size = 100
 n_batches = Xoh.size()[1] // batch_size
 
-n_a = 32  # hidden state size of the Bi-LSTM
+n_a = 32  # hidden state size of the pre-attention Bi-LSTM, output is twice of this
 n_s = 64  # hidden state size of the post-attention LSTM
 model = Attn(Tx, Ty, n_a, n_s, len(human_vocab), len(machine_vocab), batch_size)
 
@@ -80,19 +80,21 @@ criterion = nn.CrossEntropyLoss()
 
 for epoch in range(1, epochs + 1):
     # TODO shuffle data
-    model.train()  # Turn on the train mode
+    model.train()  # Turn on train mode
     for i in range(n_batches):
         local_Xoh, local_Yoh = Xoh[:, i*n_batches:(i+1)*n_batches,], Yoh[:, i*n_batches:(i+1)*n_batches,]
 
         optimizer.zero_grad()
-        outputs = model(local_Xoh).transpose(1,0).transpose(2,1)
-        print('shape of outputs', outputs.size())
-        # TODO - https://discuss.pytorch.org/t/loss-functions-for-batches/20488
-        targets = local_Yoh.argmax(2).transpose(1,0)
-        print('numpy shape of targets', targets.shape)
-        loss = criterion(outputs, targets)
-        print('---loss---', loss)
-        loss.backward()
+        with torch.autograd.set_detect_anomaly(True):
+            final_outputs = model(local_Xoh)
+            # final_outputs = outputs.view(batch_size, 11, -1)  # size 100, 11 10
+            print('shape of outputs', final_outputs.size())
+            # TODO - https://discuss.pytorch.org/t/loss-functions-for-batches/20488
+            targets = local_Yoh.argmax(2).view(batch_size, -1)
+            print('numpy shape of targets', targets.shape)
+            loss = criterion(final_outputs, targets)
+            print('---loss---', loss)
+            loss.backward(retain_graph=True)
         optimizer.step()
 
 
