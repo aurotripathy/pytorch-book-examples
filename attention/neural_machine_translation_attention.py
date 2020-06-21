@@ -84,7 +84,7 @@ for epoch in range(1, epochs + 1):
     for i in range(n_batches):
         local_Xoh, local_Yoh = Xoh[:, i*n_batches:(i+1)*n_batches,], Yoh[:, i*n_batches:(i+1)*n_batches,]
 
-        optimizer.zero_grad()
+        # optimizer.zero_grad()
         with torch.autograd.set_detect_anomaly(True):
             final_outputs = model(local_Xoh)
             # final_outputs = outputs.view(batch_size, 11, -1)  # size 100, 11 10
@@ -95,7 +95,7 @@ for epoch in range(1, epochs + 1):
             loss = criterion(final_outputs, targets)
             print('---loss---', loss)
             loss.backward(retain_graph=True)
-        optimizer.step()
+            optimizer.step()
 
 
 torch.save(model.state_dict(), 'models/attn-model.pt')
