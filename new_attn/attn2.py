@@ -6,6 +6,8 @@ import numpy as np
 
 Tx = 30  # human time-steps 30
 Ty = 10  # machine time-steps 10
+EMBEDDING_DIM = 50
+HIDDEN_DIM = 32  # hidden size of pre-attention Bi-LSTM; output is twice of this
 
 class EncoderRNN(nn.Module):
 
@@ -69,13 +71,9 @@ class AttnDecoderRNN(nn.Module):
 # We'll train the model on a dataset of 10000 human readable dates
 # and their equivalent, standardized, machine readable dates.
 m = 10000
-
 dataset, human_vocab, machine_vocab, inv_machine_vocab = load_dataset(m)
 print('Human vocab', human_vocab)
 print('Machine vocab', machine_vocab)
-
-
-
 X, Y = zip(*dataset)
 
 # Xoh[0] shape - 30 time-steps, 37 long
@@ -83,18 +81,12 @@ X, Y = zip(*dataset)
 X, Y, Xoh, Yoh = preprocess_data(dataset, human_vocab, machine_vocab, Tx, Ty)
 Xoh = np.expand_dims(Xoh, axis=2)  # shape (10000, 30, 1, 37)
 
-EMBEDDING_DIM = 50
-HIDDEN_DIM = 32  # hidden size of pre-attention Bi-LSTM; output is twice of this
-
 
 def train(input_tensor, target_tensor,
           encoder_rnn, attn_decoder,
           encoder_optimizer, attn_decoder_optimizer,
           criterion, max_length=Ty):
 
-    encoder_rnn = EncoderRNN(EMBEDDING_DIM, HIDDEN_DIM, len(human_vocab))
-
- 
     encoder_rnn.zero_grad()
     lstm_out = encoder_rnn(input)
     encoder_hidden = encoder_rnn.initHidden()
@@ -133,4 +125,7 @@ def train(input_tensor, target_tensor,
 
 input = torch.from_numpy(X[0]).long()
 target = torch.from_numpy(Y[0]).long()
-train(input, target)
+encoder_rnn = EncoderRNN(EMBEDDING_DIM, HIDDEN_DIM, len(human_vocab))
+
+train(input, target,
+    encoder_rnn, attn_decoder)
