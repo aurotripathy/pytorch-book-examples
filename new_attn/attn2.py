@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from nmt_utils import load_dataset, preprocess_data
 import torch.nn.functional as F
-# from pudb import set_trace
+from pudb import set_trace
 import numpy as np
 
 Tx = 30  # human time-steps 30
@@ -45,23 +45,22 @@ class AttnDecoderRNN(nn.Module):
         self.output_size = output_size
         self.max_length = max_length
 
-        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
         # self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
-        self.attn = nn.Linear(1952, 30)
-        self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
+        self.attn = nn.Linear(3840, 30)
         # self.lstm = nn.LSTM(self.hidden_size * 2, self.hidden_size)
-        self.lstm = nn.GRU(self.hidden_size * 2, self.hidden_size)
+        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
     def forward(self, input, hidden):
-        embedded = input.view(1, 1, -1)
-        repeat_hidden = hidden.repeat(30).view(1, 1, -1)
-        attn_weights = F.softmax(
-            self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
+        repeat_hidden = torch.repeat_interleave(hidden, repeats=30, dim=0).view(1, 1, -1)
+        attn_weights = F.softmax(self.attn(torch.cat((input.view(1, 1, -1)[0],
+                                                      repeat_hidden[0]), 1)),
+                                 dim=1)
         attn_applied = torch.bmm(attn_weights.unsqueeze(0), input.view(1, 30, -1))
 
-        output, hidden = self.lstm(attn_applied, hidden)
+        output, hidden = self.gru(attn_applied, hidden)
 
+        set_trace()
         output = F.log_softmax(self.out(output[0]), dim=1)
         return output, hidden
  
@@ -116,7 +115,7 @@ encoder_optimizer = optim.SGD(encoder_rnn.parameters(), lr=LEARNING_RATE)
 decoder_optimizer = optim.SGD(attn_decoder_rnn.parameters(), lr=LEARNING_RATE)
 criterion = nn.NLLLoss()
 
-for i in range(50000):
+for i in range(10000):
     print(i)
     input = torch.from_numpy(X[i]).long()
     target = torch.from_numpy(Y[i]).long()
