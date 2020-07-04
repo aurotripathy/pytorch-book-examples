@@ -44,28 +44,28 @@ class AttnDecoderRNN(nn.Module):
         self.max_length = max_length
 
         self.embedding = nn.Embedding(self.output_size, self.hidden_size)
-        self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
+        # self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
+        self.attn = nn.Linear(1952, 30)
         self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
-        self.lstm = nn.LSTM(self.hidden_size, self.hidden_size)
+        # self.lstm = nn.LSTM(self.hidden_size * 2, self.hidden_size)
+        self.lstm = nn.GRU(self.hidden_size * 2, self.hidden_size)
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
     def forward(self, input, hidden):
-        embedded = self.embedding(input).view(1, 1, -1)
+        embedded = input.view(1, 1, -1)
 
         attn_weights = F.softmax(
             self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
-        attn_applied = torch.bmm(attn_weights.unsqueeze(0),
-                                 encoder_outputs.unsqueeze(0))
+        attn_applied = torch.bmm(attn_weights.unsqueeze(0), input.view(1, 30, -1))
 
-        output = torch.cat((embedded[0], attn_applied[0]), 1)
-        output = self.attn_combine(output).unsqueeze(0)
-
-        output = F.relu(output)
-        output, hidden = self.lstm(output, hidden)
+        output, hidden = self.lstm(attn_applied, hidden)
 
         output = F.log_softmax(self.out(output[0]), dim=1)
         return output, hidden
  
+    def init_hidden(self):
+        return torch.zeros(1, 1, self.hidden_size)
+
     
 # We'll train the model on a dataset of 10000 human readable dates
 # and their equivalent, standardized, machine readable dates.
@@ -93,14 +93,14 @@ def train(input_tensor, target_tensor,
 
     encoder_outputs = encoder_rnn(input_tensor)
     attn_decoder_input = encoder_outputs
-
+    attn_decoder_hidden = attn_decoder.init_hidden()
 
     for d_indx in range(target_length):
         attn_decoder_output, attn_decoder_hidden = attn_decoder(attn_decoder_input, attn_decoder_hidden)
         topv, topi = attn_decoder_output.topk(1)
         attn_decoder_input = topi.squeeze().detach()  # detach from history as input
 
-        loss += criterion(attn_decoder_output, target_tensor[d_indx])
+        loss += criterion(attn_decoder_output, target_tensor[d_indx].unsqueeze(0))
 
     loss.backward()
 
