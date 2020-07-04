@@ -97,8 +97,6 @@ def train(input_tensor, target_tensor,
 
     for d_indx in range(target_length):
         attn_decoder_output, attn_decoder_hidden = attn_decoder(attn_decoder_input, attn_decoder_hidden)
-        topv, topi = attn_decoder_output.topk(1)
-        attn_decoder_input = topi.squeeze().detach()  # detach from history as input
 
         loss += criterion(attn_decoder_output, target_tensor[d_indx].unsqueeze(0))
 
@@ -110,8 +108,6 @@ def train(input_tensor, target_tensor,
     return loss.item() / target_length
 
 
-input = torch.from_numpy(X[0]).long()
-target = torch.from_numpy(Y[0]).long()
 encoder_rnn = EncoderRNN(EMBEDDING_DIM_PRE_ATTN, HIDDEN_DIM_PRE_ATTN_LSTM, len(human_vocab))
 attn_decoder = AttnDecoderRNN(HIDDEN_DIM_POST_ATTN_LSTM, len(machine_vocab))
 
@@ -119,4 +115,9 @@ encoder_optimizer = optim.SGD(encoder_rnn.parameters(), lr=LEARNING_RATE)
 decoder_optimizer = optim.SGD(attn_decoder.parameters(), lr=LEARNING_RATE)
 criterion = nn.NLLLoss()
 
-train(input, target, encoder_rnn, attn_decoder, encoder_optimizer, decoder_optimizer, criterion)
+for i in range(10):
+    print(i)
+    input = torch.from_numpy(X[i]).long()
+    target = torch.from_numpy(Y[i]).long()
+    loss = train(input, target, encoder_rnn, attn_decoder, encoder_optimizer, decoder_optimizer, criterion)
+    print(loss)
