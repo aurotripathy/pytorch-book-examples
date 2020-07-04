@@ -1,14 +1,17 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
 from nmt_utils import load_dataset, preprocess_data
+import torch.nn.functional as F
 # from pudb import set_trace
 import numpy as np
 
 Tx = 30  # human time-steps 30
 Ty = 10  # machine time-steps 10
-EMBEDDING_DIM = 50
-HIDDEN_DIM = 32  # hidden size of pre-attention Bi-LSTM; output is twice of this
-
+EMBEDDING_DIM_PRE_ATTN = 50
+HIDDEN_DIM_PRE_ATTN_LSTM = 32  # hidden size of pre-attention Bi-LSTM; output is twice of this
+HIDDEN_DIM_POST_ATTN_LSTM = 32
+LEARNING_RATE = 0.1
 class EncoderRNN(nn.Module):
 
     def __init__(self, embedding_dim, hidden_dim, vocab_size):
@@ -46,7 +49,7 @@ class AttnDecoderRNN(nn.Module):
         self.lstm = nn.LSTM(self.hidden_size, self.hidden_size)
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
-    def forward(self, input, hidden, encoder_outputs):
+    def forward(self, input, hidden):
         embedded = self.embedding(input).view(1, 1, -1)
 
         attn_weights = F.softmax(
@@ -61,12 +64,8 @@ class AttnDecoderRNN(nn.Module):
         output, hidden = self.lstm(output, hidden)
 
         output = F.log_softmax(self.out(output[0]), dim=1)
-        return output, hidden, attn_weights
-
-    def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size)
-
-    
+        return output, hidden
+ 
     
 # We'll train the model on a dataset of 10000 human readable dates
 # and their equivalent, standardized, machine readable dates.
@@ -85,31 +84,19 @@ Xoh = np.expand_dims(Xoh, axis=2)  # shape (10000, 30, 1, 37)
 def train(input_tensor, target_tensor,
           encoder_rnn, attn_decoder,
           encoder_optimizer, attn_decoder_optimizer,
-          criterion, max_length=Ty):
-
-    encoder_rnn.zero_grad()
-    lstm_out = encoder_rnn(input)
-    encoder_hidden = encoder_rnn.initHidden()
+          criterion, target_length=Ty):
 
     encoder_optimizer.zero_grad()
     attn_decoder_optimizer.zero_grad()
 
-    input_length = input_tensor.size(0)
-    target_length = target_tensor.size(0)
-
-    encoder_outputs = torch.zeros(max_length, encoder.hidden_size)
-
     loss = 0
 
     encoder_outputs = encoder_rnn(input_tensor)
-    attn_decoder_input = torch.tensor([[SOS_token]])
-
     attn_decoder_input = encoder_outputs
 
 
     for d_indx in range(target_length):
-        attn_decoder_output, attn_decoder_hidden, decoder_attention = attn_decoder(
-            attn_decoder_input, attn_decoder_hidden, encoder_outputs)
+        attn_decoder_output, attn_decoder_hidden = attn_decoder(attn_decoder_input, attn_decoder_hidden)
         topv, topi = attn_decoder_output.topk(1)
         attn_decoder_input = topi.squeeze().detach()  # detach from history as input
 
@@ -125,7 +112,11 @@ def train(input_tensor, target_tensor,
 
 input = torch.from_numpy(X[0]).long()
 target = torch.from_numpy(Y[0]).long()
-encoder_rnn = EncoderRNN(EMBEDDING_DIM, HIDDEN_DIM, len(human_vocab))
+encoder_rnn = EncoderRNN(EMBEDDING_DIM_PRE_ATTN, HIDDEN_DIM_PRE_ATTN_LSTM, len(human_vocab))
+attn_decoder = AttnDecoderRNN(HIDDEN_DIM_POST_ATTN_LSTM, len(machine_vocab))
 
-train(input, target,
-    encoder_rnn, attn_decoder)
+encoder_optimizer = optim.SGD(encoder_rnn.parameters(), lr=LEARNING_RATE)
+decoder_optimizer = optim.SGD(attn_decoder.parameters(), lr=LEARNING_RATE)
+criterion = nn.NLLLoss()
+
+train(input, target, encoder_rnn, attn_decoder, encoder_optimizer, decoder_optimizer, criterion)
