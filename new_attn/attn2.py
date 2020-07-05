@@ -3,8 +3,9 @@ import torch.nn as nn
 import torch.optim as optim
 from nmt_utils import load_dataset, preprocess_data
 import torch.nn.functional as F
-from pudb import set_trace
 import numpy as np
+import random
+from pudb import set_trace
 
 Tx = 30  # human time-steps 30
 Ty = 10  # machine time-steps 10
@@ -31,8 +32,8 @@ class EncoderRNN(nn.Module):
     def forward(self, sentence):
         embeds = self.char_embeddings(sentence)
         lstm_out, _ = self.bi_dir_lstm(embeds.view(len(sentence), 1, -1))
-        #lstm_out holds the backward and forward hidden states in the final layer
-        #lstm_out dim, [sent len, batch size, hid dim * n directions]
+        # lstm_out holds the backward and forward hidden states in the final layer
+        # lstm_out dim, [sent len, batch size, hid dim * n directions]
 
         return lstm_out
 
@@ -58,7 +59,6 @@ class AttnDecoderRNN(nn.Module):
 
         output, hidden = self.gru(attn_applied, hidden)
 
-        set_trace()
         output = F.log_softmax(self.out(output[0]), dim=1)
         return output, hidden
  
@@ -72,11 +72,25 @@ nb_samples = 10000
 dataset, human_vocab, machine_vocab, inv_machine_vocab = load_dataset(nb_samples)
 print('Human vocab', human_vocab)
 print('Machine vocab', machine_vocab)
-X, Y = zip(*dataset)
+print('Inverse machine vocav', inv_machine_vocab)
 
-# Xoh[0] shape - 30 time-steps, 37 long
-# Yoh[0] shape - 10 time-steps, 11 long
+X, Y = zip(*dataset)
 X, Y, _, _ = preprocess_data(dataset, human_vocab, machine_vocab, Tx, Ty)
+
+
+def evaluate(input_tensor, encoder_rnn, attn_decoder_rnn, target_length=Ty):
+
+    with torch.no_grad():
+        encoder_outputs = encoder_rnn(input_tensor)
+        attn_decoder_hidden = attn_decoder_rnn.init_hidden()
+
+        decoded_date = []
+        for time_step in range(target_length):
+            attn_decoder_output, attn_decoder_hidden = attn_decoder_rnn(encoder_outputs, attn_decoder_hidden, time_step)
+            topv, topi = attn_decoder_output.data.topk(1)
+            decoded_date.append(inv_machine_vocab[topi.item()])
+
+    return ''.join(decoded_date)
 
 
 def train(input_tensor, target_tensor,
@@ -106,19 +120,35 @@ def train(input_tensor, target_tensor,
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-encoder_rnn = EncoderRNN(EMBEDDING_DIM_PRE_ATTN, HIDDEN_DIM_PRE_ATTN_LSTM, len(human_vocab)).to(device)
+encoder_rnn = EncoderRNN(EMBEDDING_DIM_PRE_ATTN, HIDDEN_DIM_PRE_ATTN_LSTM,
+                         len(human_vocab)).to(device)
 attn_decoder_rnn = AttnDecoderRNN(HIDDEN_DIM_POST_ATTN_LSTM, len(machine_vocab)).to(device)
 
-encoder_optimizer = optim.SGD(encoder_rnn.parameters(), lr=LEARNING_RATE)
-decoder_optimizer = optim.SGD(attn_decoder_rnn.parameters(), lr=LEARNING_RATE)
-criterion = nn.NLLLoss()
-
+eval = True
 X = torch.from_numpy(X).long().to(device)
 Y = torch.from_numpy(Y).long().to(device)
 
-total_loss = 0
-for i in range(nb_samples):
-    total_loss += train(X[i], Y[i], encoder_rnn, attn_decoder_rnn, encoder_optimizer, decoder_optimizer, criterion)
-    if i != 0 and i % 1000 == 0:
-        print(i, total_loss/1000)
-        total_loss = 0
+if eval:
+    print('loading models...')
+    encoder_rnn.load_state_dict(torch.load('encoder_rnn_state.pt'))
+    attn_decoder_rnn.load_state_dict(torch.load('attn_decoder_rnn_state.pt'))
+    i = random.choice(range(nb_samples))
+    i = 1000
+    print(i)
+    machine_date = evaluate(X[i], encoder_rnn, attn_decoder_rnn)
+    print('Input Human Date:', dataset[i][0])
+    print('Predicted Machine Date:', machine_date, 'Actual Machine Date:', dataset[i][1])
+else:
+    encoder_optimizer = optim.SGD(encoder_rnn.parameters(), lr=LEARNING_RATE)
+    decoder_optimizer = optim.SGD(attn_decoder_rnn.parameters(), lr=LEARNING_RATE)
+    criterion = nn.NLLLoss()
+
+    total_loss = 0
+    for iters in range(3):
+        for i in range(1, nb_samples):
+            total_loss += train(X[i - 1], Y[i - 1], encoder_rnn, attn_decoder_rnn, encoder_optimizer, decoder_optimizer, criterion)
+            if i % 1000 == 0:
+                print(i, total_loss/1000)
+                total_loss = 0
+        torch.save(encoder_rnn.state_dict(), 'encoder_rnn_state.pt')
+        torch.save(attn_decoder_rnn.state_dict(), 'attn_decoder_rnn_state.pt')
