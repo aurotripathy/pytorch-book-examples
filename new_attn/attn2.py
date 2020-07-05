@@ -11,7 +11,7 @@ Ty = 10  # machine time-steps 10
 EMBEDDING_DIM_PRE_ATTN = 50
 HIDDEN_DIM_PRE_ATTN_LSTM = 32  # hidden size of pre-attention Bi-LSTM; output is twice of this
 HIDDEN_DIM_POST_ATTN_LSTM = 64
-LEARNING_RATE = 0.1
+LEARNING_RATE = 0.01
 
 
 class EncoderRNN(nn.Module):
