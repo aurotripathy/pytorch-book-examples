@@ -52,12 +52,9 @@ class AttnDecoderRNN(nn.Module):
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
     def forward(self, input, hidden, time_step):
-        set_trace()
-        repeat_hidden = torch.repeat_interleave(hidden, repeats=30, dim=0).view(1, 1, -1)
-        attn_weights = F.softmax(self.attn(torch.cat((input.view(1, 1, -1)[0],
-                                                      repeat_hidden[0]), 1)),
-                                 dim=1)
-        attn_applied = torch.bmm(attn_weights.unsqueeze(0), input.view(1, 30, -1))
+        cat_input_hidden = torch.stack([torch.cat((input[i], hidden[0]), 1) for i in range(30)])
+        attn_weights = F.softmax(self.attn(cat_input_hidden.view(1, 1, -1)), dim=1)
+        attn_applied = torch.bmm(attn_weights, input.view(1, 30, -1))
 
         output, hidden = self.gru(attn_applied, hidden)
 
