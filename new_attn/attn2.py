@@ -63,13 +63,13 @@ class AttnDecoderRNN(nn.Module):
         return output, hidden
  
     def init_hidden(self):
-        return torch.zeros(1, 1, self.hidden_size)
+        return torch.zeros(1, 1, self.hidden_size, device=device)
 
     
 # We'll train the model on a dataset of 10000 human readable dates
 # and their equivalent, standardized, machine readable dates.
-m = 10000
-dataset, human_vocab, machine_vocab, inv_machine_vocab = load_dataset(m)
+nb_samples = 10000
+dataset, human_vocab, machine_vocab, inv_machine_vocab = load_dataset(nb_samples)
 print('Human vocab', human_vocab)
 print('Machine vocab', machine_vocab)
 X, Y = zip(*dataset)
@@ -104,17 +104,21 @@ def train(input_tensor, target_tensor,
 
     return loss.item() / target_length
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-encoder_rnn = EncoderRNN(EMBEDDING_DIM_PRE_ATTN, HIDDEN_DIM_PRE_ATTN_LSTM, len(human_vocab))
-attn_decoder_rnn = AttnDecoderRNN(HIDDEN_DIM_POST_ATTN_LSTM, len(machine_vocab))
+encoder_rnn = EncoderRNN(EMBEDDING_DIM_PRE_ATTN, HIDDEN_DIM_PRE_ATTN_LSTM, len(human_vocab)).to(device)
+attn_decoder_rnn = AttnDecoderRNN(HIDDEN_DIM_POST_ATTN_LSTM, len(machine_vocab)).to(device)
 
 encoder_optimizer = optim.SGD(encoder_rnn.parameters(), lr=LEARNING_RATE)
 decoder_optimizer = optim.SGD(attn_decoder_rnn.parameters(), lr=LEARNING_RATE)
 criterion = nn.NLLLoss()
 
-for i in range(10000):
-    print(i)
-    sample = torch.from_numpy(X[i]).long()
-    target = torch.from_numpy(Y[i]).long()
-    loss = train(sample, target, encoder_rnn, attn_decoder_rnn, encoder_optimizer, decoder_optimizer, criterion)
-    print(loss)
+X = torch.from_numpy(X).long().to(device)
+Y = torch.from_numpy(Y).long().to(device)
+
+total_loss = 0
+for i in range(nb_samples):
+    total_loss += train(X[i], Y[i], encoder_rnn, attn_decoder_rnn, encoder_optimizer, decoder_optimizer, criterion)
+    if i != 0 and i % 1000 == 0:
+        print(i, total_loss/1000)
+        total_loss = 0
