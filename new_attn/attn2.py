@@ -51,7 +51,8 @@ class AttnDecoderRNN(nn.Module):
         self.gru = nn.GRU(self.hidden_size, self.hidden_size)
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
-    def forward(self, input, hidden):
+    def forward(self, input, hidden, time_step):
+        set_trace()
         repeat_hidden = torch.repeat_interleave(hidden, repeats=30, dim=0).view(1, 1, -1)
         attn_weights = F.softmax(self.attn(torch.cat((input.view(1, 1, -1)[0],
                                                       repeat_hidden[0]), 1)),
@@ -92,13 +93,12 @@ def train(input_tensor, target_tensor,
     loss = 0
 
     encoder_outputs = encoder_rnn(input_tensor)
-    attn_decoder_input = encoder_outputs
     attn_decoder_hidden = attn_decoder_rnn.init_hidden()
 
-    for d_indx in range(target_length):
-        attn_decoder_output, attn_decoder_hidden = attn_decoder_rnn(attn_decoder_input, attn_decoder_hidden)
+    for time_step in range(target_length):
+        attn_decoder_output, attn_decoder_hidden = attn_decoder_rnn(encoder_outputs, attn_decoder_hidden, time_step)
 
-        loss += criterion(attn_decoder_output, target_tensor[d_indx].unsqueeze(0))
+        loss += criterion(attn_decoder_output, target_tensor[time_step].unsqueeze(0))
 
     loss.backward()
 
@@ -117,7 +117,7 @@ criterion = nn.NLLLoss()
 
 for i in range(10000):
     print(i)
-    input = torch.from_numpy(X[i]).long()
+    sample = torch.from_numpy(X[i]).long()
     target = torch.from_numpy(Y[i]).long()
-    loss = train(input, target, encoder_rnn, attn_decoder_rnn, encoder_optimizer, decoder_optimizer, criterion)
+    loss = train(sample, target, encoder_rnn, attn_decoder_rnn, encoder_optimizer, decoder_optimizer, criterion)
     print(loss)
