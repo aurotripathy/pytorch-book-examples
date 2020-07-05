@@ -131,9 +131,10 @@ Y = torch.from_numpy(Y).long().to(device)
 eval = True
 if eval:
     print('loading models...')
-    encoder_rnn.load_state_dict(torch.load('encoder_rnn_state.pt'))
-    attn_decoder_rnn.load_state_dict(torch.load('attn_decoder_rnn_state.pt'))
-    for _ in range(20):
+    encoder_rnn.load_state_dict(torch.load('encoder_rnn_state.dict'))
+    attn_decoder_rnn.load_state_dict(torch.load('attn_decoder_rnn_state.dict'))
+    
+    for _ in range(100):
         i = random.choice(range(nb_samples))
         machine_date = evaluate(X[i], encoder_rnn, attn_decoder_rnn)
         print('Input Human Date:', dataset[i][0])
