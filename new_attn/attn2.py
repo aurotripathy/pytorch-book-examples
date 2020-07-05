@@ -13,6 +13,7 @@ EMBEDDING_DIM_PRE_ATTN = 50
 HIDDEN_DIM_PRE_ATTN_LSTM = 32  # hidden size of pre-attention Bi-LSTM; output is twice of this
 HIDDEN_DIM_POST_ATTN_LSTM = 64
 LEARNING_RATE = 0.01
+NB_EPOCHS = 3
 
 
 class EncoderRNN(nn.Module):
@@ -124,27 +125,28 @@ encoder_rnn = EncoderRNN(EMBEDDING_DIM_PRE_ATTN, HIDDEN_DIM_PRE_ATTN_LSTM,
                          len(human_vocab)).to(device)
 attn_decoder_rnn = AttnDecoderRNN(HIDDEN_DIM_POST_ATTN_LSTM, len(machine_vocab)).to(device)
 
-eval = True
 X = torch.from_numpy(X).long().to(device)
 Y = torch.from_numpy(Y).long().to(device)
 
+eval = True
 if eval:
     print('loading models...')
     encoder_rnn.load_state_dict(torch.load('encoder_rnn_state.pt'))
     attn_decoder_rnn.load_state_dict(torch.load('attn_decoder_rnn_state.pt'))
-    i = random.choice(range(nb_samples))
-    i = 1000
-    print(i)
-    machine_date = evaluate(X[i], encoder_rnn, attn_decoder_rnn)
-    print('Input Human Date:', dataset[i][0])
-    print('Predicted Machine Date:', machine_date, 'Actual Machine Date:', dataset[i][1])
-else:
+    for _ in range(20):
+        i = random.choice(range(nb_samples))
+        machine_date = evaluate(X[i], encoder_rnn, attn_decoder_rnn)
+        print('Input Human Date:', dataset[i][0])
+        print('Predicted Machine Date:', machine_date,
+              'Actual Machine Date:', dataset[i][1],
+              'matches' if machine_date == dataset[i][1] else 'mismatch')
+else:  # train
     encoder_optimizer = optim.SGD(encoder_rnn.parameters(), lr=LEARNING_RATE)
     decoder_optimizer = optim.SGD(attn_decoder_rnn.parameters(), lr=LEARNING_RATE)
     criterion = nn.NLLLoss()
 
     total_loss = 0
-    for iters in range(3):
+    for iters in range(NB_EPOCHS):
         for i in range(1, nb_samples):
             total_loss += train(X[i - 1], Y[i - 1], encoder_rnn, attn_decoder_rnn, encoder_optimizer, decoder_optimizer, criterion)
             if i % 1000 == 0:
