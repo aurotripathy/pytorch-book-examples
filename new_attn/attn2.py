@@ -47,13 +47,13 @@ class AttnDecoderRNN(nn.Module):
         self.output_size = output_size
         self.max_length = max_length
 
-        self.attn_wieghted = nn.Linear(3840, 30)
+        self.attn_weighted = nn.Linear(3840, 30)  # 64 x 2 x 30
         self.gru = nn.GRU(self.hidden_size, self.hidden_size)  # TODO convert to LSTM
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
     def forward(self, input, hidden, time_step):
         cat_input_hidden = torch.stack([torch.cat((input[i], hidden[0]), 1) for i in range(30)])
-        attn_weights = F.softmax(self.attn_wieghted(cat_input_hidden.view(1, 1, -1)), dim=1)
+        attn_weights = F.softmax(self.attn_weighted(cat_input_hidden.view(1, 1, -1)), dim=1)
         attn_applied = torch.bmm(attn_weights, input.view(1, 30, -1))
 
         output, hidden = self.gru(attn_applied, hidden)
