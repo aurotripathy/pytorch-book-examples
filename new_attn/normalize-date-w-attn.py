@@ -5,6 +5,7 @@ from nmt_utils import load_dataset, preprocess_data
 import torch.nn.functional as F
 import numpy as np
 import random
+import argparse
 from pudb import set_trace
 
 seq_len_human = 30  # human time-steps 30
@@ -13,7 +14,7 @@ EMBEDDING_DIM_PRE_ATTN = 50
 HIDDEN_DIM_PRE_ATTN_LSTM = 32  # hidden size of pre-attention Bi-LSTM; output is twice of this
 HIDDEN_DIM_POST_ATTN_LSTM = 64
 LEARNING_RATE = 0.01
-NB_EPOCHS = 3
+NB_EPOCHS = 4
 
 
 class EncoderRNN(nn.Module):
@@ -63,17 +64,6 @@ class AttnDecoderRNN(nn.Module):
         return torch.zeros(1, 1, self.hidden_size, device=device)
 
     
-# We'll train the model on a dataset of 10000 human readable dates
-# and their equivalent, standardized, machine readable dates.
-nb_samples = 10000
-dataset, human_vocab, machine_vocab, inv_machine_vocab = load_dataset(nb_samples)
-print('Human vocab', human_vocab)
-print('Machine vocab', machine_vocab)
-print('Inverse machine vocab', inv_machine_vocab)
-
-X, Y = zip(*dataset)
-X, Y, _, _ = preprocess_data(dataset, human_vocab, machine_vocab, seq_len_human, seq_len_machine)
-
 
 def evaluate(input_tensor, encoder_rnn, attn_decoder_rnn, target_length=seq_len_machine):
 
@@ -115,6 +105,22 @@ def train(input_tensor, target_tensor,
 
     return loss.item() / target_length
 
+parser = argparse.ArgumentParser(description='Either train or evaluate attn model for normalizing dates')
+parser.add_argument('-m', '--mode', type=str, required=True, choices=['train', 'eval'],
+                    help="pick mode - train or eval")
+args = parser.parse_args()
+
+# We'll train the model on a dataset of 10000 human readable dates
+# and their equivalent, standardized, machine readable dates.
+nb_samples = 10000
+dataset, human_vocab, machine_vocab, inv_machine_vocab = load_dataset(nb_samples)
+print('Human vocab', human_vocab)
+print('Machine vocab', machine_vocab)
+print('Inverse machine vocab', inv_machine_vocab)
+
+X, Y = zip(*dataset)
+X, Y, _, _ = preprocess_data(dataset, human_vocab, machine_vocab, seq_len_human, seq_len_machine)
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 encoder_rnn = EncoderRNN(EMBEDDING_DIM_PRE_ATTN, HIDDEN_DIM_PRE_ATTN_LSTM,
@@ -125,8 +131,7 @@ X = torch.from_numpy(X).long().to(device)
 Y = torch.from_numpy(Y).long().to(device)
 #  TODO split train/test
 
-train = False
-if train:
+if args.mode == 'train':
     encoder_optimizer = optim.SGD(encoder_rnn.parameters(), lr=LEARNING_RATE)
     decoder_optimizer = optim.SGD(attn_decoder_rnn.parameters(), lr=LEARNING_RATE)
     criterion = nn.NLLLoss()
