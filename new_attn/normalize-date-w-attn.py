@@ -46,7 +46,9 @@ class AttnDecoderRNN(nn.Module):
         self.hidden_size = hidden_size
         self.output_size = output_size
 
-        self.attn_weighted = nn.Linear(3840, 30)  # 64 x 2 x 30
+        self.attn_weighted = nn.Linear((HIDDEN_DIM_PRE_ATTN_LSTM * 2 +  # 64
+                                        HIDDEN_DIM_POST_ATTN_LSTM) * # 64
+                                       seq_len_human, seq_len_human)  # 64 x 2 x 30
         self.gru = nn.GRU(self.hidden_size, self.hidden_size)  # TODO convert to LSTM
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
@@ -55,6 +57,7 @@ class AttnDecoderRNN(nn.Module):
         attn_weights = F.softmax(self.attn_weighted(cat_input_hidden.view(1, 1, -1)), dim=1)
         attn_applied = torch.bmm(attn_weights, input.view(1, 30, -1))
 
+        set_trace()
         output, hidden = self.gru(attn_applied, hidden)
 
         output = F.log_softmax(self.out(output[0]), dim=1)
