@@ -1,3 +1,4 @@
+""" Translates human readable dates into machine readable dates"""
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -53,7 +54,6 @@ class AttnDecoderRNN(nn.Module):
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
     def forward(self, input, hidden, cell_state, time_step):
-        set_trace()
         cat_input_hidden = torch.stack([torch.cat((input[i], hidden[0].view(1, HIDDEN_DIM_POST_ATTN_LSTM)), 1) for i in range(seq_len_human)])
         attn_weights = F.softmax(self.attn_weighted(cat_input_hidden.view(1, 1, -1)), dim=1)
         attn_applied = torch.bmm(attn_weights, input.view(1, 30, -1))
@@ -64,7 +64,7 @@ class AttnDecoderRNN(nn.Module):
         output = F.log_softmax(self.out(hidden), dim=1)
         return output, hidden, cell_state
  
-    def init_hidden(self):
+    def init_hidden_cell(self):
         return (torch.zeros(1, 1, self.hidden_size, device=device),  # hx_0
                 torch.zeros(1, 1, self.hidden_size, device=device))  # cx_0
 
@@ -80,14 +80,14 @@ def train(input_tensor, target_tensor,
     loss = 0
 
     encoder_outputs = encoder_rnn(input_tensor)
-    attn_decoder_hidden, attn_decoder_state = attn_decoder_rnn.init_hidden()
+    decoder_hidden, decoder_cell = attn_decoder_rnn.init_hidden_cell()
 
     for time_step in range(target_length):
-        attn_decoder_output, attn_decoder_hidden, attn_decoder_state = attn_decoder_rnn(encoder_outputs,
-                                                                                       attn_decoder_hidden, attn_decoder_state,
-                                                                                       time_step)
+        decoder_output, decoder_hidden, decoder_cell = attn_decoder_rnn(encoder_outputs,
+                                                                        decoder_hidden, decoder_cell,
+                                                                        time_step)
 
-        loss += criterion(attn_decoder_output, target_tensor[time_step].unsqueeze(0))
+        loss += criterion(decoder_output, target_tensor[time_step].unsqueeze(0))
 
     loss.backward()
 
@@ -100,14 +100,14 @@ def evaluate(input_tensor, encoder_rnn, attn_decoder_rnn, target_length=seq_len_
 
     with torch.no_grad():
         encoder_outputs = encoder_rnn(input_tensor)
-        attn_decoder_hidden, attn_decoder_state = attn_decoder_rnn.init_hidden()
+        decoder_hidden, decoder_cell = attn_decoder_rnn.init_hidden_cell()
 
         decoded_date = []
         for time_step in range(target_length):
-            attn_decoder_output, attn_decoder_hidden, attn_decoder_state = attn_decoder_rnn(encoder_outputs,
-                                                                        attn_decoder_hidden, attn_decoder_state,
-                                                                        time_step)
-            topv, topi = attn_decoder_output.data.topk(1)
+            decoder_output, decoder_hidden, decoder_cell = attn_decoder_rnn(encoder_outputs,
+                                                                            decoder_hidden, decoder_cell,
+                                                                            time_step)
+            topv, topi = decoder_output.data.topk(1)
             decoded_date.append(inv_machine_vocab[topi.item()])
 
     return ''.join(decoded_date)
@@ -164,4 +164,4 @@ else:  # evaluate
         print('Input Human Date:', dataset[i][0])
         print('Predicted Machine Date:', machine_date,
               'Actual Machine Date:', dataset[i][1],
-              'matches' if machine_date == dataset[i][1] else 'mismatch')
+              'matches' if machine_date == dataset[i][1] else 'MISMATCH')
