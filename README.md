@@ -1,1 +1,1 @@
-My beloved book
+https://opencv.io/
