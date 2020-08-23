@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import ConcatDataset
 from utils import UnNormalize, display_sample_images
 import matplotlib.pyplot as plt
-
+from pudb import set_trace
 
 
 class NetTwoScalesMnist(nn.Module):
@@ -49,8 +49,7 @@ class NetTwoScalesMnist(nn.Module):
 
         
 class NetTwoStream(nn.Module):
-    """ Two parallel streams, top (_t), bottom (-b)
-    concetenateed in the end """
+    """ Two parallel streams, top, bottom concatenateed in the end """
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3)
@@ -61,22 +60,56 @@ class NetTwoStream(nn.Module):
 
 
     def forward(self, x):
-        x_t = self.pool(F.relu(self.conv1(x)))
-        x_b = self.pool(F.relu(self.conv1(x)))
+        x_top = self.pool(F.relu(self.conv1(x)))
+        x_bot = self.pool(F.relu(self.conv1(x)))
 
-        x_t = self.pool(F.relu(self.conv2(x_t)))
-        x_b = self.pool(F.relu(self.conv2(x_b)))
+        x_top = self.pool(F.relu(self.conv2(x_top)))
+        x_bot = self.pool(F.relu(self.conv2(x_bot)))
 
-        x_t = x_t.view(-1, 64 * 26 * 26)
-        x_t = self.fc1(x_t)
+        x_top = x_top.view(-1, 64 * 26 * 26)
+        x_top = self.fc1(x_top)
 
-        x_b = x_b.view(-1, 64 * 26 * 26)
-        x_b = self.fc1(x_b)
+        x_bot = x_bot.view(-1, 64 * 26 * 26)
+        x_bot = self.fc1(x_bot)
 
-        x = torch.cat((x_t, x_b), dim=1)
+        x = torch.cat((x_top, x_bot), dim=1)
 
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
+
+    
+class NetConcatAllScales(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        self.conv2 = nn.Conv2d(32, 64, 3, 1)
+        self.dropout1 = nn.Dropout2d(0.25)
+        self.dropout2 = nn.Dropout2d(0.5)
+        self.fc_scale_1 = nn.Linear(32 * 110 * 110, 128)
+        self.fc_scale_2 = nn.Linear(64 * 54 * 54, 128)
+        self.fc_2_combined = nn.Linear(2 * 128, 10)
+
+    def forward(self, x):
+        set_trace()
+        scale_1 = F.relu(self.conv1(x))
+
+        x = F.relu(self.conv2(scale_1))
+        scale_2 = F.max_pool2d(x, 2)
+        scale_2 = self.dropout1(scale_2)
+        scale_2 = torch.flatten(scale_2, 1)
+        scale_2 = F.relu(self.fc_scale_2(scale_2))
+        
+        scale_1 = self.dropout1(scale_1)
+        scale_1 = torch.flatten(scale_1, 1)
+        scale_1 = F.relu(self.fc_scale_1(scale_1))
+
+        # combined_scales = torch.cat((scale_1, scale_2), dim=1)
+        combined_scales = torch.cat((scale_1, scale_2), dim=1)
+        combined_scales = self.dropout2(combined_scales)
+        combined_scales = self.fc_2_combined(combined_scales)
+        output = F.log_softmax(combined_scales, dim=1)
+        return output
+
 
 class NetOrig(nn.Module):
     def __init__(self):
@@ -159,7 +192,7 @@ def main():
                         help='quickly check a single pass')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+    parser.add_argument('--log-interval', type=int, default=40, metavar='N',
                         help='how many batches to wait before logging training status')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
@@ -207,7 +240,11 @@ def main():
 
     # display_sample_images(train_loader)
     
-    model = NetTwoScalesMnist().to(device)
+    # model = NetTwoScalesMnist().to(device)
+    # model = NetOrig().to(device)
+    model = NetConcatAllScales().to(device)
+    print(model)
+    print('Paramter count in Model:', sum([torch.numel(p) for p in model.parameters()]))
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
