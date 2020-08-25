@@ -81,19 +81,19 @@ class NetTwoStream(nn.Module):
 class NetConcatAllScales(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        self.conv1 = nn.Conv2d(1, 32, 3, 1, dilation=2)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
         self.dropout1 = nn.Dropout2d(0.25)
         self.dropout2 = nn.Dropout2d(0.5)
-        self.fc_scale_1 = nn.Linear(32 * 110 * 110, 128)
-        self.fc_scale_2 = nn.Linear(64 * 54 * 54, 128)
+        self.fc_scale_1 = nn.Linear(32 * 54 * 54, 128)
+        self.fc_scale_2 = nn.Linear(64 * 53 * 53, 128)
         self.fc_2_combined = nn.Linear(2 * 128, 10)
 
     def forward(self, x):
-        set_trace()
-        scale_1 = F.relu(self.conv1(x))
+        x = F.relu(self.conv1(x))
+        scale_1 = F.max_pool2d(x, 2)
 
-        x = F.relu(self.conv2(scale_1))
+        x = F.relu(self.conv2(x))
         scale_2 = F.max_pool2d(x, 2)
         scale_2 = self.dropout1(scale_2)
         scale_2 = torch.flatten(scale_2, 1)
@@ -103,7 +103,6 @@ class NetConcatAllScales(nn.Module):
         scale_1 = torch.flatten(scale_1, 1)
         scale_1 = F.relu(self.fc_scale_1(scale_1))
 
-        # combined_scales = torch.cat((scale_1, scale_2), dim=1)
         combined_scales = torch.cat((scale_1, scale_2), dim=1)
         combined_scales = self.dropout2(combined_scales)
         combined_scales = self.fc_2_combined(combined_scales)
