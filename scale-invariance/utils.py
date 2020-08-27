@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 class UnNormalize(object):
     """ The purpose of this class is to display the augmented image"""
     def __init__(self, mean, std):
@@ -17,9 +18,11 @@ class UnNormalize(object):
         return tensor
 
 
-def display_sample_images(train_loader):
-    for data, _ in train_loader:
+def display_sample_images(train_loader, count=3):
+    for i, (data, _) in enumerate(train_loader):
         unorm = UnNormalize(mean=(0.1307,), std=(0.3081,))
         img = unorm(data[0])
         plt.imshow(img[0].numpy())
         plt.show()
+        if i == count-1:
+            break
