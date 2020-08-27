@@ -140,37 +140,34 @@ def main():
 
     kwargs = {'batch_size': args.batch_size}
     if use_cuda:
-        kwargs.update({'num_workers': 1,
-                       'pin_memory': True,
-                       'shuffle': True},
-                     )
+        kwargs.update({'num_workers': 1, 'pin_memory': True, 'shuffle': True},)
 
     transform_resize = transforms.Compose([
-        transforms.Resize(112),
+        transforms.Resize(112),  # four times otiginal
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
         ])
 
     transform_pad = transforms.Compose([
-        transforms.Pad(42),
+        transforms.Pad(42),  # keep font size the same but expand image
         transforms.RandomAffine(0, translate=(0.3, 0.3)),
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
         ])
 
-    dataset_resize = datasets.MNIST('../data', train=True, download=True,
+    resized_dataset_train = datasets.MNIST('../data', train=True, download=True,
                                     transform=transform_resize)
-    dataset_pad = datasets.MNIST('../data', train=True, download=True,
+    padded_dataset_train = datasets.MNIST('../data', train=True, download=True,
                                  transform=transform_pad)
-    dataset_train = ConcatDataset([dataset_resize, dataset_pad])
+    dataset_train = ConcatDataset([resized_dataset_train, padded_dataset_train])
     train_loader = torch.utils.data.DataLoader(dataset_train, **kwargs)
 
 
-    dataset_resize_test = datasets.MNIST('../data', train=False,
+    resized_dataset_test = datasets.MNIST('../data', train=False,
                                          transform=transform_resize)  
-    dataset_pad_test = datasets.MNIST('../data', train=False,
+    padded_dataset_test = datasets.MNIST('../data', train=False,
                                       transform=transform_pad)
-    dataset_test = ConcatDataset([dataset_resize_test, dataset_pad_test])
+    dataset_test = ConcatDataset([resized_dataset_test, padded_dataset_test])
     test_loader = torch.utils.data.DataLoader(dataset_test, **kwargs)
 
     display_sample_images(train_loader)
