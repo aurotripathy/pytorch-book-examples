@@ -10,74 +10,35 @@ from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import ConcatDataset
 from utils import UnNormalize, display_sample_images
-import matplotlib.pyplot as plt
 from pudb import set_trace
 
 
-class NetTwoScalesMnist(nn.Module):
+class NetOrig(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1_t = nn.Conv2d(1, 32, 3, 1)
-        self.conv2_t = nn.Conv2d(32, 64, 3, 1)
-        self.conv3_t = nn.Conv2d(64, 128, 3, 1)
-        self.conv4_t = nn.Conv2d(128, 256, 3, 1)
-
-        self.fc1_t = nn.Linear(256 * 5 * 5, 128)
-        self.fc1_b = nn.Linear(64 * 26 * 26, 128)
-
-        self.pool = nn.MaxPool2d(2, 2)
-
-        self.fc2 = nn.Linear(2 * 128, 10)
-
+        self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        self.conv2 = nn.Conv2d(32, 64, 3, 1)
+        self.dropout1 = nn.Dropout2d(0.25)
+        self.dropout2 = nn.Dropout2d(0.5)
+        self.fc1 = nn.Linear(64 * 54 * 54, 128)
+        self.fc2 = nn.Linear(128, 10)
 
     def forward(self, x):
-        x_t = self.pool(F.relu(self.conv1_t(x)))
-        x_t_b = self.pool(F.relu(self.conv2_t(x_t)))
-        x_t = self.pool(F.relu(self.conv3_t(x_t_b)))
-        x_t = self.pool(F.relu(self.conv4_t(x_t)))
-        x_t = x_t.view(-1, 256 * 5 * 5)
-        x_t = self.fc1_t(x_t)
-
-        x_b = x_t_b.view(-1, 64 * 26 * 26)
-        x_b = self.fc1_b(x_b)
-       
-        x = torch.cat((x_t, x_b), dim=1)
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = self.conv2(x)
+        x = F.relu(x)
+        x = F.max_pool2d(x, 2)
+        x = self.dropout1(x)
+        x = torch.flatten(x, 1)
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.dropout2(x)
         x = self.fc2(x)
-
         output = F.log_softmax(x, dim=1)
         return output
 
-        
-class NetTwoStream(nn.Module):
-    """ Two parallel streams, top, bottom concatenateed in the end """
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(32, 64, 3)
-        self.fc1 = nn.Linear(64 * 26 * 26, 128)
-        self.fc2 = nn.Linear(2 * 128, 10)
 
-
-    def forward(self, x):
-        x_top = self.pool(F.relu(self.conv1(x)))
-        x_bot = self.pool(F.relu(self.conv1(x)))
-
-        x_top = self.pool(F.relu(self.conv2(x_top)))
-        x_bot = self.pool(F.relu(self.conv2(x_bot)))
-
-        x_top = x_top.view(-1, 64 * 26 * 26)
-        x_top = self.fc1(x_top)
-
-        x_bot = x_bot.view(-1, 64 * 26 * 26)
-        x_bot = self.fc1(x_bot)
-
-        x = torch.cat((x_top, x_bot), dim=1)
-
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
-
-    
 class NetConcatAllScales(nn.Module):
     def __init__(self):
         super().__init__()
@@ -109,31 +70,6 @@ class NetConcatAllScales(nn.Module):
         output = F.log_softmax(combined_scales, dim=1)
         return output
 
-
-class NetOrig(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout2d(0.25)
-        self.dropout2 = nn.Dropout2d(0.5)
-        self.fc1 = nn.Linear(64 * 54 * 54, 128)
-        self.fc2 = nn.Linear(128, 10)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -174,7 +110,7 @@ def test(model, device, test_loader):
 
 def main():
     # Training settings
-    parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
+    parser = argparse.ArgumentParser(description='PyTorch Multi Scale MNIST Example')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
@@ -237,7 +173,7 @@ def main():
     dataset_test = ConcatDataset([dataset_resize_test, dataset_pad_test])
     test_loader = torch.utils.data.DataLoader(dataset_test, **kwargs)
 
-    # display_sample_images(train_loader)
+    display_sample_images(train_loader)
     
     # model = NetTwoScalesMnist().to(device)
     # model = NetOrig().to(device)
