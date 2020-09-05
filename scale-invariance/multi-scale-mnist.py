@@ -14,6 +14,7 @@ from tensorboardX import SummaryWriter
 
 
 class NetOrig(nn.Module):
+    """ Copied from https://github.com/pytorch/examples/blob/master/mnist/main.py """
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
@@ -40,6 +41,7 @@ class NetOrig(nn.Module):
 
 
 class NetConcatAllScales(nn.Module):
+    """ We'll compare this version with the original version"""
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1, dilation=2)
