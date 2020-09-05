@@ -10,7 +10,7 @@ from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import ConcatDataset
 from utils import UnNormalize, display_sample_images
-from pudb import set_trace
+from tensorboardX import SummaryWriter
 
 
 class NetOrig(nn.Module):
@@ -72,7 +72,7 @@ class NetConcatAllScales(nn.Module):
 
 
 
-def train(args, model, device, train_loader, optimizer, epoch):
+def train(args, model, device, train_loader, optimizer, epoch, writer):
     model.train()
     running_loss = 0
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -111,13 +111,15 @@ def test(model, device, test_loader):
 
 def main():
     # Training settings
-    parser = argparse.ArgumentParser(description='PyTorch Multi Scale MNIST Example')
+    parser = argparse.ArgumentParser(description='Example of how a multi scale network benifits scale invarience.')
+    parser.add_argument('--net-type', type=str, required=True, choices=['original', 'multi-scale'],
+                        help='Pick the net type; original or multi-scale')    
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
     parser.add_argument('--epochs', type=int, default=5, metavar='N',
-                        help='number of epochs to train (default: 14)')
+                        help='number of epochs to train (default: 5)')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
     parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
@@ -128,9 +130,9 @@ def main():
                         help='random seed (default: 1)')
     parser.add_argument('--log-interval', type=int, default=40, metavar='N',
                         help='how many batches to wait before logging training status')
-    parser.add_argument('--save-model', action='store_true', default=False,
-                        help='For Saving the current Model')
+
     args = parser.parse_args()
+
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
     torch.manual_seed(args.seed)
@@ -142,17 +144,15 @@ def main():
         kwargs.update({'num_workers': 1, 'pin_memory': True, 'shuffle': True},)
 
     transform_resize = transforms.Compose([
-        transforms.Resize(112),  # four times otiginal
+        transforms.Resize(112),  # four times original
         transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-        ])
+        transforms.Normalize((0.1307,), (0.3081,))])
 
     transform_pad = transforms.Compose([
         transforms.Pad(42),  # keep font size the same but expand image
         transforms.RandomAffine(0, translate=(0.3, 0.3)),
         transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-        ])
+        transforms.Normalize((0.1307,), (0.3081,))])
 
     resized_dataset_train = datasets.MNIST('../data', train=True, download=True,
                                     transform=transform_resize)
@@ -170,24 +170,23 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset_test, **kwargs)
 
     # display_sample_images(train_loader)
-    
-    model = NetOrig().to(device)
-    # model = NetConcatAllScales().to(device)
+
+    if args.net_type == 'original':
+        model = NetOrig().to(device)
+    else:
+        model = NetConcatAllScales().to(device)
+    writer = SummaryWriter('runs/' + args.net_type + '_mnist')
+
     print(model)
     print('Paramter count in Model:', sum([torch.numel(p) for p in model.parameters()]))
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader, optimizer, epoch)
+        train(args, model, device, train_loader, optimizer, epoch, writer)
         test(model, device, test_loader)
         scheduler.step()
 
-    if args.save_model:
-        torch.save(model.state_dict(), "mnist_cnn.pt")
-
-from tensorboardX import SummaryWriter
-writer = SummaryWriter('runs/orig_mnist')
 
 if __name__ == '__main__':
     main()
