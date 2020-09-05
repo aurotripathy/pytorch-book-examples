@@ -90,7 +90,7 @@ def train(args, model, device, train_loader, optimizer, epoch, writer):
                 100. * batch_idx / len(train_loader), loss.item()))
             running_loss = 0
 
-def test(model, device, test_loader):
+def test(model, device, test_loader, epoch, writer):
     model.eval()
     test_loss = 0
     correct = 0
@@ -103,7 +103,8 @@ def test(model, device, test_loader):
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
-
+    
+    writer.add_scalar('Accuracy', 100. * correct / len(test_loader.dataset), epoch * len(test_loader))
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
@@ -184,7 +185,7 @@ def main():
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch, writer)
-        test(model, device, test_loader)
+        test(model, device, test_loader, epoch, writer)
         scheduler.step()
 
 
