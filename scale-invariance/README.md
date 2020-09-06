@@ -11,7 +11,6 @@ This is a demonstration of how to design a neural netowk that can classify image
 ### The Two Nets
 ![mnist images](./assets/combined-nets.png "Image")
 
-TensorBoard Plots
 
-
+### TensorBoard Plots
 ![mnist images](./assets/TB-test-accuracy-loss.PNG "Image")
