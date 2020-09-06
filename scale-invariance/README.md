@@ -1,5 +1,7 @@
 
-This is a demonstration of how to design a neural netowk that can classify images at multiple scale. 
+This is a simple example of how to design a neural netowk that can classify images at multiple scale. The original MNIST dataset has been used and overused to illustrate how well convolutional neural networks (CNNs) extract features and how we can build a decision boundary to classify digits. 
+
+This examle is an extension of the that same dataset with two different scales of digits. 
 
 ### Sample Images
 These sample images are at two different scales.
