@@ -1,4 +1,4 @@
-# https://theaisummer.com/receptive-field/
+""" How to detect objects at multiple scales """
 
 from __future__ import print_function
 import argparse
@@ -41,7 +41,7 @@ class NetOrig(nn.Module):
 
 
 class NetConcatAllScales(nn.Module):
-    """ We'll compare this version with the original version"""
+    """ This class concatenates two parallel nets. """
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1, dilation=2)
@@ -73,8 +73,9 @@ class NetConcatAllScales(nn.Module):
         return output
 
 
-
 def train(args, model, device, train_loader, optimizer, epoch, writer):
+    """ This is a very classic train loop per epoch consisting of
+    the forward pass, the loss calculation, the backward pass and the model update"""
     model.train()
     running_loss = 0
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -92,6 +93,7 @@ def train(args, model, device, train_loader, optimizer, epoch, writer):
                 100. * batch_idx / len(train_loader), loss.item()))
             running_loss = 0
 
+            
 def test(model, device, test_loader, epoch, writer):
     model.eval()
     test_loss = 0
@@ -113,7 +115,6 @@ def test(model, device, test_loader, epoch, writer):
 
 
 def main():
-    # Training settings
     parser = argparse.ArgumentParser(description='Example of how a multi scale network benifits scale invarience.')
     parser.add_argument('--net-type', type=str, required=True, choices=['original', 'multi-scale'],
                         help='Pick the net type; original or multi-scale')    
@@ -147,12 +148,12 @@ def main():
         kwargs.update({'num_workers': 1, 'pin_memory': True, 'shuffle': True},)
 
     transform_resize = transforms.Compose([
-        transforms.Resize(112),  # four times original
+        transforms.Resize(112),  # scale image to four times original
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))])
 
     transform_pad = transforms.Compose([
-        transforms.Pad(42),  # keep font size the same but expand image
+        transforms.Pad(42),  # keep digits size the same but expand image
         transforms.RandomAffine(0, translate=(0.3, 0.3)),
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))])
@@ -178,10 +179,12 @@ def main():
         model = NetOrig().to(device)
     else:
         model = NetConcatAllScales().to(device)
-    writer = SummaryWriter('runs/' + args.net_type + '_mnist')
-
+    writer = SummaryWriter('runs/' + args.net_type + '-mnist')
+    torch.onnx.export(model, torch.randn(1, 1, 112, 112).to(device),
+                      args.net_type + '-model.onnx', output_names=['digits-class'])
     print(model)
     print('Paramter count in Model:', sum([torch.numel(p) for p in model.parameters()]))
+    
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
@@ -189,7 +192,6 @@ def main():
         train(args, model, device, train_loader, optimizer, epoch, writer)
         test(model, device, test_loader, epoch, writer)
         scheduler.step()
-
 
 if __name__ == '__main__':
     main()
