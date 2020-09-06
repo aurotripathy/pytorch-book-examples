@@ -1,7 +1,7 @@
 
-This is a demonstration of how one might think about images in more that one scale. 
+This is a demonstration of how to design a neural netowk that can classify images at multiple scale. 
 
-Images
+###Sample Images
 
 | Scaled Image                                              | Original Image with rest of area padded                   |
 | ----------------------------------------------------------|---------------------------------------------------------- |
