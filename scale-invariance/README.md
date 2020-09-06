@@ -8,4 +8,4 @@ This is a demonstration of how to design a neural netowk that can classify image
 |![mnist images](./assets/Figure_1.png "Logo Title Text 1") | ![mnist images](./assets/Figure_2.png "Logo Title Text 1")|
 
 
-![mnist images](./assets/combined net.png "Logo Title Text 1")
+![mnist images](./assets/combined\ nets.png "Logo Title Text 1")
