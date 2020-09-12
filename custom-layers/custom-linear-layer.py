@@ -18,9 +18,8 @@ class MyLinearLayer(nn.Module):
         bound = 1 / math.sqrt(fan_in)
         nn.init.uniform_(self.bias, -bound, bound)  # bias init
 
-    def forward(self, x):
-        w_times_x= torch.mm(x, self.weights.t())
-        return torch.add(w_times_x, self.bias)  # w times x + b
+    def forward(self, x):  # w times x + b
+        return (torch.mm(x, self.weights.t())) + self.bias
 
 
 class BasicModel(nn.Module):
@@ -39,6 +38,7 @@ class BasicModel(nn.Module):
         x = x.view(-1, 256)
         return self.linear(x)
 
+    
 torch.manual_seed(0)  #  for repeatable results
 inp = np.array([[[[1, 2, 3, 4],  # batch(=1) x channels(=1) x height x width
                   [1, 2, 3, 4],
@@ -50,4 +50,4 @@ print('Forward computation by using torch library:', basic_model(x))
 
 torch.manual_seed(0)  #  important to reset 
 basic_model = BasicModel('use-custom')
-print('Forward computation by using custom layer:', basic_model(x))
+print('Forward computation by using custom layer :', basic_model(x))
