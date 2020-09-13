@@ -4,9 +4,12 @@ import numpy as np
 import math
 
 def swish(x):
+    """ Swish activation works better than ReLU on deeper models across a number of challenging data sets. """
     return x * torch.sigmoid(x)
 
 def gelu(x):
+    """ Gaussian Error Linear Unit, defined as the input (x) times 
+        standard Gaussion cumulative dustribution function. """
     pi = 3.1415926535897932
     cdf = 0.5 * (1.0 + torch.tanh((math.sqrt(2 / pi) * (x + 0.044715 * torch.pow(x, 3)))))
     return x*cdf
