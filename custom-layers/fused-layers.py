@@ -4,9 +4,12 @@ import numpy as np
 import math
 
 def swish(x):
+    """ Swish activation works better than ReLU on deeper models across a number of challenging data sets. """
     return x * torch.sigmoid(x)
 
 def gelu(x):
+    """ Gaussian Error Linear Unit, defined as the input (x) times 
+        standard Gaussion cumulative dustribution function, cfd. """
     pi = 3.1415926535897932
     cdf = 0.5 * (1.0 + torch.tanh((math.sqrt(2 / pi) * (x + 0.044715 * torch.pow(x, 3)))))
     return x*cdf
@@ -38,9 +41,10 @@ inp = np.array([[[[1, 2, 3, 4],  # batch(=1) x channels(=1) x height(=3) x width
 x = torch.tensor(inp, dtype=torch.float)
 print(linear_plus_gelu(x))  # fused layer
 
+# Unfused version that gives the same result
 torch.manual_seed(0)  # reset the random num generator
 linear = torch.nn.Linear(4, 2)
 gelu_activation = nn.GELU()
-print(gelu_activation(linear(x)))  # unfused
+print(gelu_activation(linear(x)))
 
 
