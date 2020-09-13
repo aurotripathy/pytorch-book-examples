@@ -9,7 +9,7 @@ def swish(x):
 
 def gelu(x):
     """ Gaussian Error Linear Unit, defined as the input (x) times 
-        standard Gaussion cumulative dustribution function. """
+        standard Gaussion cumulative dustribution function, cfd. """
     pi = 3.1415926535897932
     cdf = 0.5 * (1.0 + torch.tanh((math.sqrt(2 / pi) * (x + 0.044715 * torch.pow(x, 3)))))
     return x*cdf
