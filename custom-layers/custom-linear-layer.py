@@ -2,7 +2,7 @@
 import math
 import torch
 import torch.nn as nn
-import numpy as np
+from pudb import set_trace
 
 class MyLinearLayer(nn.Module):
     """ Custom Linear layer but mimics a standard linear layer """
@@ -40,14 +40,13 @@ class BasicModel(nn.Module):
 
     
 torch.manual_seed(0)  #  for repeatable results
-inp = np.array([[[[1, 2, 3, 4],  # batch(=1) x channels(=1) x height x width
+x = torch.tensor([[[[1, 2, 3, 4],  # batch(=1) x channels(=1) x height x width
                   [1, 2, 3, 4],
-                  [1, 2, 3, 4]]]])
-x = torch.tensor(inp, dtype=torch.float)
-
+                    [1, 2, 3, 4]]]], dtype=torch.float)
+set_trace()
 basic_model = BasicModel('use-library')
 print('Forward computation by using torch library:', basic_model(x))
 
-torch.manual_seed(0)  #  important to reset 
+torch.manual_seed(0)  #  reset for repeatability for both approaches
 basic_model = BasicModel('use-custom')
 print('Forward computation by using custom layer :', basic_model(x))
