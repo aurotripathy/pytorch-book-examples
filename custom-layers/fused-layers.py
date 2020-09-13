@@ -36,11 +36,11 @@ inp = np.array([[[[1, 2, 3, 4],  # batch(=1) x channels(=1) x height(=3) x width
                   [1, 2, 3, 4],
                   [1, 2, 3, 4]]]])
 x = torch.tensor(inp, dtype=torch.float)
-print(linear_plus_gelu(x))
+print(linear_plus_gelu(x))  # fused layer
 
 torch.manual_seed(0)  # reset the random num generator
 linear = torch.nn.Linear(4, 2)
 gelu_activation = nn.GELU()
-print(gelu_activation(linear(x)))
+print(gelu_activation(linear(x)))  # unfused
 
 
