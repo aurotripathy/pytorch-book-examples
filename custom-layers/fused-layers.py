@@ -25,7 +25,7 @@ x = torch.tensor([[[[1, 2, 3, 4],  # batch(=1) x channels(=1) x height(=3) x wid
                     [9, 1, 2, 3]]]], dtype=torch.float32)
 print(linear_plus_gelu(x))  # fused layer
 
-# Unfused version that gives the same result
+# Unfused version that gives the same output
 torch.manual_seed(0)  # reset the random num generator
 linear = nn.Linear(4, 2, True)
 gelu_activation = nn.GELU()
