@@ -28,6 +28,13 @@ These sample images are at two different scales.
 
 
 ### The Two Nets
+The net on the left is the original net adjusted for 112x112 dimensions. The first convolutional layer has a 3x3 kernel, a stride of 1 and a dilation of 1.
+
+
+
+stride: step length for moving kernel.
+dilation: step length for moving kernel element.
+
 ![mnist images](./assets/combined-nets.png "Image")
 
 
