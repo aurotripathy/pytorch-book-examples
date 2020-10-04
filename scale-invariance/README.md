@@ -10,9 +10,14 @@ First
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))])
 ```
-
+```
 Second
-
+    transform_pad = transforms.Compose([
+        transforms.Pad(42),  # keep digits size the same but expand image
+        transforms.RandomAffine(0, translate=(0.3, 0.3)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))])
+```
 
 ### Sample Images
 These sample images are at two different scales.
