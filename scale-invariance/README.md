@@ -3,12 +3,17 @@ This is a simple example of how to design a neural network that learns to classi
 
 This example uses an extended MNIST dataset with two different scales of digits. We create this programatically.
 
+First
 ```
     transform_resize = transforms.Compose([
         transforms.Resize(112),  # scale image to four times original
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))])
 ```
+
+Second
+
+
 ### Sample Images
 These sample images are at two different scales.
 
