@@ -40,7 +40,7 @@ First, we introduce a dilation of 2 to increase the receptive field.
 
 Second, we introduce a parallel branch learn a different scale, the intuition is that is learns the scaller digits.
 
-Note, stride is step length for sliding 3x3 kernel and dilation is the step length for sliding kernel element.
+Note, stride is step length for sliding 3x3 kernel and dilation is the step length for kernel element.
 
 ![mnist images](./assets/combined-nets.png "Image")
 
