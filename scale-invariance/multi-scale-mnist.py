@@ -17,7 +17,7 @@ class NetOrig(nn.Module):
     """ Copied from https://github.com/pytorch/examples/blob/master/mnist/main.py """
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        self.conv1 = nn.Conv2d(1, 32, 3, stride=1, dilation=1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
         self.dropout1 = nn.Dropout2d(0.25)
         self.dropout2 = nn.Dropout2d(0.5)
@@ -44,7 +44,7 @@ class NetConcatAllScales(nn.Module):
     """ This class concatenates two parallel nets. """
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1, dilation=2)
+        self.conv1 = nn.Conv2d(1, 32, 3, stride=1, dilation=2)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
         self.dropout1 = nn.Dropout2d(0.25)
         self.dropout2 = nn.Dropout2d(0.5)
