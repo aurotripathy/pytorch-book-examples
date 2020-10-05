@@ -48,6 +48,6 @@ Note, stride is step length for sliding 3x3 kernel and dilation is the step leng
 ### TensorBoard Plots
 ![mnist images](./assets/TB-test-accuracy-loss.PNG "Image")
 
-###References
+### References
 
 [1] Araujo, A., Norris, W., & Sim, J. (2019). Computing receptive fields of convolutional neural networks. Distill, 4(11), e21.
