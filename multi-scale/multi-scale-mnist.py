@@ -40,7 +40,7 @@ class NetOrig(nn.Module):
         return output
 
 
-class NetConcatAllScales(nn.Module):
+class NetConcatTwoScales(nn.Module):
     """ This class concatenates two parallel nets. """
     def __init__(self):
         super().__init__()
@@ -178,7 +178,7 @@ def main():
     if args.net_type == 'original':
         model = NetOrig().to(device)
     else:
-        model = NetConcatAllScales().to(device)
+        model = NetConcatTwoScales().to(device)
     writer = SummaryWriter('runs/' + args.net_type + '-mnist')
     torch.onnx.export(model, torch.randn(1, 1, 112, 112).to(device),
                       args.net_type + '-model.onnx', output_names=['digits-class'])
