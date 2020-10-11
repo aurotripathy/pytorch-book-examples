@@ -11,9 +11,8 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import ConcatDataset
 from utils import UnNormalize, display_sample_images
 from tensorboardX import SummaryWriter
-from pudb import set_trace
 
-class NetOrig(nn.Module):
+class NetOriginal(nn.Module):
     """ Copied from https://github.com/pytorch/examples/blob/master/mnist/main.py """
     def __init__(self):
         super().__init__()
@@ -74,7 +73,9 @@ class NetConcatTwoScales(nn.Module):
         return output
 
 class NetTwoReceptiveFields(nn.Module):
-    """ This class concatenates two parallel nets. """
+    """ This class concatenates two parallel nets, 
+         a path with dilation=2 for the large images,
+         and a path with no dilation (normal)"""
     def __init__(self):
         super().__init__()
         self.conv1_dilated = nn.Conv2d(1, 32, 3, stride=1, dilation=2)
@@ -93,51 +94,19 @@ class NetTwoReceptiveFields(nn.Module):
         dilate_path = F.relu(self.conv1_dilated(x))
         dilate_path = F.relu(self.conv2(dilate_path))
         dilate_path = F.max_pool2d(dilate_path, 2)  # shape = 1, 64, 53, 53
-        # dilate_path = self.dropout1(dilate_path)
         dilate_path = torch.flatten(dilate_path, 1)
         dilate_path = F.relu(self.fc1_dilate_path(dilate_path))
 
         normal_path = F.relu(self.conv1_normal(x))  
         normal_path = F.max_pool2d(normal_path, 2)
-        # normal_path = self.dropout1(normal_path)
         normal_path = torch.flatten(normal_path, 1)
         normal_path = F.relu(self.fc1_normal_path(normal_path))
 
 
         combined_scales = torch.cat((dilate_path, normal_path), dim=1)
-        # combined_scales = self.dropout2(combined_scales)
-        # combined_scales = self.dropout2(combined_scales)
         combined_scales = self.fc2_combined(combined_scales)
         output = F.log_softmax(combined_scales, dim=1)
         return output
-
-class NetDilate(nn.Module):
-    """ This class concatenates two parallel nets. """
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, stride=1, dilation=2)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout2d(0.25)
-        self.dropout2 = nn.Dropout2d(0.5)
-        self.fc1 = nn.Linear(64 * 53 * 53, 128)
-        self.fc2 = nn.Linear(128, 10)
-
-    def forward(self, x):
-        set_trace()
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
-
 
     
 def train(args, model, device, train_loader, optimizer, epoch, writer):
@@ -183,7 +152,7 @@ def test(model, device, test_loader, epoch, writer):
 
 def main():
     parser = argparse.ArgumentParser(description='Example of how a multi scale network benifits scale invarience.')
-    parser.add_argument('--net-type', type=str, required=True, choices=['original', 'multi-scale'],
+    parser.add_argument('--net-type', type=str, required=True, choices=['original', 'two-scales', 'two-receptives'],
                         help='Pick the net type; original or multi-scale')    
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
@@ -243,11 +212,12 @@ def main():
     # display_sample_images(train_loader)
 
     if args.net_type == 'original':
-        # model = NetOrig().to(device)
-        model = NetTwoReceptiveFields().to(device)
-    else:
+        model = NetOriginal().to(device) 
+    elif args.net_type == 'two-scales':
         model = NetConcatTwoScales().to(device)
-        # model = NetDilate().to(device)
+    else:  # two receptive fields
+        model = NetTwoReceptiveFields().to(device)
+
     writer = SummaryWriter('runs/' + args.net_type + '-mnist')
     torch.onnx.export(model, torch.randn(1, 1, 112, 112).to(device),
                       args.net_type + '-model.onnx', output_names=['digits-class'])
