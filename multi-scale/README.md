@@ -42,6 +42,8 @@ Second, we introduce a parallel branch learn a different scale, the intuition is
 
 Note, stride is step length for sliding 3x3 kernel and dilation is the step length for kernel element.
 
+Visualization of the network was created by [netron](https://lutzroeder.github.io/netron/)
+
 ![mnist images](./assets/combined-nets.png "Image")
 
 
