@@ -80,7 +80,7 @@ class NetTwoReceptiveFields(nn.Module):
         super().__init__()
         self.conv1_dilated = nn.Conv2d(1, 32, 3, stride=1, dilation=2)
         self.conv2 = nn.Conv2d(32, 64, 3, stride=1, dilation=1)
-        self.fc1_dilate_path = nn.Linear(64 * 53 * 53, 128)
+        self.fc1_dilate_path = nn.Linear(64 * 26 * 26, 128)
 
         self.conv1_normal = nn.Conv2d(1, 32, 3, stride=1)
         self.fc1_normal_path = nn.Linear(32 * 55 * 55, 128)
@@ -92,10 +92,12 @@ class NetTwoReceptiveFields(nn.Module):
 
     def forward(self, x):
         dilate_path = F.relu(self.conv1_dilated(x))
+        dilate_path = F.max_pool2d(dilate_path, 2)  # shape = 1, 64, 53, 53
         dilate_path = F.relu(self.conv2(dilate_path))
         dilate_path = F.max_pool2d(dilate_path, 2)  # shape = 1, 64, 53, 53
         dilate_path = torch.flatten(dilate_path, 1)
         dilate_path = F.relu(self.fc1_dilate_path(dilate_path))
+
 
         normal_path = F.relu(self.conv1_normal(x))  
         normal_path = F.max_pool2d(normal_path, 2)
