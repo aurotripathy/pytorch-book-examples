@@ -1,4 +1,4 @@
-""" How to detect dogits at two scales """
+""" How to detect dogits at two different scales """
 from __future__ import print_function
 import argparse
 import torch
@@ -39,40 +39,7 @@ class NetOriginal(nn.Module):
         return output
 
 
-class NetConcatTwoScales(nn.Module):
-    """ This class concatenates two parallel nets. """
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, stride=1, dilation=2)
-        self.conv2 = nn.Conv2d(32, 64, 3, stride=1, dilation=1)
-        self.dropout1 = nn.Dropout2d(0.25)
-        # self.dropout2 = nn.Dropout2d(0.5)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc_scale_1 = nn.Linear(32 * 54 * 54, 128)
-        self.fc_scale_2 = nn.Linear(64 * 53 * 53, 128)
-        self.fc_2_combined = nn.Linear(2 * 128, 10)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        scale_1 = F.max_pool2d(x, 2)
-
-        x = F.relu(self.conv2(x))
-        scale_2 = F.max_pool2d(x, 2)
-        scale_2 = self.dropout1(scale_2)
-        scale_2 = torch.flatten(scale_2, 1)
-        scale_2 = F.relu(self.fc_scale_2(scale_2))
-        
-        scale_1 = self.dropout1(scale_1)
-        scale_1 = torch.flatten(scale_1, 1)
-        scale_1 = F.relu(self.fc_scale_1(scale_1))
-
-        combined_scales = torch.cat((scale_1, scale_2), dim=1)
-        # combined_scales = self.dropout2(combined_scales)
-        combined_scales = self.fc_2_combined(combined_scales)
-        output = F.log_softmax(combined_scales, dim=1)
-        return output
-
-class NetTwoReceptiveFields(nn.Module):
+class NetConcatTwoReceptiveFields(nn.Module):
     """ This class concatenates two parallel nets, 
          a path with dilation=2 for the large images,
          and a path with no dilation (normal)"""
@@ -110,7 +77,41 @@ class NetTwoReceptiveFields(nn.Module):
         output = F.log_softmax(combined_scales, dim=1)
         return output
 
-    
+
+class NetConcatTwoScales(nn.Module):
+    """ This class concatenates two parallel nets. """
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 32, 3, stride=1, dilation=2)
+        self.conv2 = nn.Conv2d(32, 64, 3, stride=1, dilation=1)
+        self.dropout1 = nn.Dropout2d(0.25)
+        # self.dropout2 = nn.Dropout2d(0.5)
+        self.dropout2 = nn.Dropout(0.5)
+        self.fc_scale_1 = nn.Linear(32 * 54 * 54, 128)
+        self.fc_scale_2 = nn.Linear(64 * 53 * 53, 128)
+        self.fc_2_combined = nn.Linear(2 * 128, 10)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        scale_1 = F.max_pool2d(x, 2)
+
+        x = F.relu(self.conv2(x))
+        scale_2 = F.max_pool2d(x, 2)
+        scale_2 = self.dropout1(scale_2)
+        scale_2 = torch.flatten(scale_2, 1)
+        scale_2 = F.relu(self.fc_scale_2(scale_2))
+        
+        scale_1 = self.dropout1(scale_1)
+        scale_1 = torch.flatten(scale_1, 1)
+        scale_1 = F.relu(self.fc_scale_1(scale_1))
+
+        combined_scales = torch.cat((scale_1, scale_2), dim=1)
+        # combined_scales = self.dropout2(combined_scales)
+        combined_scales = self.fc_2_combined(combined_scales)
+        output = F.log_softmax(combined_scales, dim=1)
+        return output
+
+
 def train(args, model, device, train_loader, optimizer, epoch, writer):
     """ This is a very classic train loop per epoch consisting of
     the forward pass, the loss calculation, the backward pass and the model update"""
@@ -217,8 +218,8 @@ def main():
         model = NetOriginal().to(device) 
     elif args.net_type == 'two-scales':
         model = NetConcatTwoScales().to(device)
-    else:  # two receptive fields
-        model = NetTwoReceptiveFields().to(device)
+    else:  # concat two receptive fields
+        model = NetConcatTwoReceptiveFields().to(device)
 
     writer = SummaryWriter('runs/' + args.net_type + '-mnist')
     torch.onnx.export(model, torch.randn(1, 1, 112, 112).to(device),
