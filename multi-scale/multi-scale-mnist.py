@@ -57,16 +57,16 @@ class NetConcatTwoReceptiveFields(nn.Module):
         self.dropout1 = nn.Dropout2d(0.25)
         self.dropout2 = nn.Dropout2d(0.5)
 
-    def forward(self, x):
-        x_dilate_path = F.relu(self.conv1_dilated(x))
-        x_dilate_path = F.max_pool2d(x_dilate_path, 2)  # shape = 1, 64, 53, 53
-        x_dilate_path = F.relu(self.conv2(x_dilate_path))
-        x_dilate_path = F.max_pool2d(x_dilate_path, 2)  # shape = 1, 64, 53, 53
+    def forward(self, x):  # shape 1, 112, 112
+        x_dilate_path = F.relu(self.conv1_dilated(x))  # output shape 32, 108, 108
+        x_dilate_path = F.max_pool2d(x_dilate_path, 2)  # output shape = 32, 54, 54
+        x_dilate_path = F.relu(self.conv2(x_dilate_path))  # output shape 64, 52, 52
+        x_dilate_path = F.max_pool2d(x_dilate_path, 2)  # shape = 64, 26, 26
         x_dilate_path = torch.flatten(x_dilate_path, 1)
         x_dilate_path = F.relu(self.fc1_dilate_path(x_dilate_path))
 
-        x_normal_path = F.relu(self.conv1_normal(x))  
-        x_normal_path = F.max_pool2d(x_normal_path, 2)
+        x_normal_path = F.relu(self.conv1_normal(x))  # output shape 32, 110, 110
+        x_normal_path = F.max_pool2d(x_normal_path, 2)  # output shape 32, 55, 55
         x_normal_path = torch.flatten(x_normal_path, 1)
         x_normal_path = F.relu(self.fc1_normal_path(x_normal_path))
 
