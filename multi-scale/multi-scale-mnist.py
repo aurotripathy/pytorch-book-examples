@@ -1,5 +1,4 @@
-""" How to detect objects at multiple scales """
-
+""" How to detect dogits at two scales """
 from __future__ import print_function
 import argparse
 import torch
@@ -13,7 +12,8 @@ from utils import UnNormalize, display_sample_images
 from tensorboardX import SummaryWriter
 
 class NetOriginal(nn.Module):
-    """ Copied from https://github.com/pytorch/examples/blob/master/mnist/main.py """
+    """ Copied from https://github.com/pytorch/examples/blob/master/mnist/main.py 
+        It has been modified to work on 112 x 112 mnist images"""
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, stride=1, dilation=1)
