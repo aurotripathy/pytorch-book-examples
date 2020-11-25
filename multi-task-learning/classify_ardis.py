@@ -10,15 +10,12 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import transforms
 from torch.optim.lr_scheduler import StepLR
-from utils import UnNormalize, display_sample_images
+from utils import normalize, display_sample_images
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset, TensorDataset
+from sklearn.utils import shuffle
 from pudb import set_trace
 
-def normalize(X):
-    print('mean', X.mean())
-    print('std', X.std())
-    return (X - X.mean()) / X.std()
 
 class Net(nn.Module):
     def __init__(self):
@@ -120,8 +117,10 @@ def main():
 
 
     x_train = np.loadtxt('data/ARDIS_train_2828.csv', dtype='float32')
-    x_test = np.loadtxt('data/ARDIS_test_2828.csv', dtype='float32')
     y_train = np.loadtxt('data/ARDIS_train_labels.csv', dtype='int')
+    x_train, y_train = shuffle(x_train, y_train)
+
+    x_test = np.loadtxt('data/ARDIS_test_2828.csv', dtype='float32')
     y_test = np.loadtxt('data/ARDIS_test_labels.csv', dtype='int')
     
     # Reshape to be [samples][pixels][width][height]
@@ -146,7 +145,7 @@ def main():
     dataset_test = TensorDataset(x_test, y_test)
     test_loader = torch.utils.data.DataLoader(dataset_test, **kwargs)
 
-    # display_sample_images(train_loader)
+    display_sample_images(train_loader)
     # display_sample_images(test_loader)
 
     model = Net().to(device)
