@@ -14,6 +14,7 @@ from utils import normalize, display_sample_images
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 from sklearn.utils import shuffle
+from pudb import set_trace
 
 
 class Net(nn.Module):
@@ -57,9 +58,9 @@ def train(args, model, device, train_loader, optimizer, epoch, writer):
         optimizer.step()
         if batch_idx % args.log_interval == 0:
             writer.add_scalar('training loss', loss / args.log_interval, epoch * len(train_loader) + batch_idx)
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
+            print(f'Train Epoch: {epoch} ' 
+                    f'[{batch_idx * len(data)}/{len(train_loader.dataset)}'
+                    f' ({100. * batch_idx / len(train_loader):.0f}%)]\tLoss: {loss.item():.6f}')
             running_loss = 0
 
             
@@ -78,7 +79,7 @@ def test(model, device, test_loader, epoch, writer):
     test_loss /= len(test_loader.dataset)
     
     writer.add_scalar('Accuracy', 100. * correct / len(test_loader.dataset), epoch * len(test_loader))
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.1f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
 
@@ -99,7 +100,7 @@ def main():
                         help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=40, metavar='N',
+    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
 
     args = parser.parse_args()
@@ -138,6 +139,12 @@ def main():
     y_train = torch.from_numpy(y_train)
     dataset_train = TensorDataset(x_train, y_train)
     train_loader = DataLoader(dataset_train, **kwargs)
+    # print('Min Pixel Value: {} \nMax Pixel Value: {}'.format(dataset_train.data.min(),
+    #                                                         dataset_train.data.max()))
+    # print('Mean Pixel Value {} \nPixel Values Std: {}'.format(dataset_train.data.float().mean(),
+    #                                                          dataset_train.data.float().std()))
+    # print('Scaled Mean Pixel Value {} \nScaled Pixel Values Std: {}'.format(dataset_train.data.float().mean() / 255,
+    #                                                                         dataset_train.data.float().std() / 255))
     
     x_test = torch.from_numpy(x_test)
     y_test = torch.from_numpy(y_test)
