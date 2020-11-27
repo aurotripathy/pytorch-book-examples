@@ -14,7 +14,6 @@ from utils import normalize, display_sample_images
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 from sklearn.utils import shuffle
-from pudb import set_trace
 
 
 class Net(nn.Module):
@@ -90,7 +89,7 @@ def main():
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=5, metavar='N',
+    parser.add_argument('--epochs', type=int, default=10, metavar='N',
                         help='number of epochs to train (default: 5)')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
@@ -116,26 +115,26 @@ def main():
         kwargs.update({'num_workers': 1, 'pin_memory': True, 'shuffle': True},)
 
 
-    x_train = np.loadtxt('data/ARDIS_train_2828.csv', dtype='float32')
+    x_train = np.loadtxt('data/ARDIS_train_2828.csv', dtype='float32') / 255  # scale
     y_train = np.loadtxt('data/ARDIS_train_labels.csv', dtype='int')
     x_train, y_train = shuffle(x_train, y_train)
 
-    x_test = np.loadtxt('data/ARDIS_test_2828.csv', dtype='float32')
+    x_test = np.loadtxt('data/ARDIS_test_2828.csv', dtype='float32') / 255  # scale
     y_test = np.loadtxt('data/ARDIS_test_labels.csv', dtype='int')
     
-    # Reshape to be [samples][pixels][width][height]
+    # Reshape to be [samples][channels][width][height]
     x_train = x_train.reshape(x_train.shape[0], 1, 28, 28)
     x_train = normalize(x_train)
-    y_train = np.argmax(y_train, axis=1)
+    y_train = np.argmax(y_train, axis=1)  # convert one-hot to index
 
     x_test = x_test.reshape(x_test.shape[0], 1, 28, 28)
     x_test = normalize(x_test)
     y_test = np.argmax(y_test, axis=1)
 
     print('Train length:', len(x_train), 'Train shape:', x_train.shape)
-    print('Test  length:', len(x_test), 'Test shape:', x_train.shape)
+    print('Test  length:', len(x_test), 'Test shape:', x_test.shape)
 
-    x_train = torch.from_numpy(x_train)
+    x_train = torch.from_numpy(x_train)  # to tensor
     y_train = torch.from_numpy(y_train)
     dataset_train = TensorDataset(x_train, y_train)
     train_loader = DataLoader(dataset_train, **kwargs)
@@ -145,12 +144,12 @@ def main():
     dataset_test = TensorDataset(x_test, y_test)
     test_loader = torch.utils.data.DataLoader(dataset_test, **kwargs)
 
-    display_sample_images(train_loader)
+    # display_sample_images(train_loader)
     # display_sample_images(test_loader)
 
     model = Net().to(device)
 
-    writer = SummaryWriter('runs/' + '-ardis')
+    writer = SummaryWriter('runs/' + 'ardis')
     torch.onnx.export(model, torch.randn(1, 1, 28, 28).to(device),
                       'ardis' + '-model.onnx', output_names=['digits-class'])
     print(model)
