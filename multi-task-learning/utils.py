@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 from pudb import set_trace
 
 def normalize(X):
-    print('mean', X.mean())
-    print('std', X.std())
+    print('mean:', X.mean())
+    print('std:', X.std())
     return (X - X.mean()) / X.std()
 
 
