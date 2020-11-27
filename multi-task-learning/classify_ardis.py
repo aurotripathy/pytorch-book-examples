@@ -116,12 +116,12 @@ def main():
         kwargs.update({'num_workers': 1, 'pin_memory': True, 'shuffle': True},)
 
 
-    x_train = np.loadtxt('data/ARDIS_train_2828.csv', dtype='float32') / 255  # scale
-    y_train = np.loadtxt('data/ARDIS_train_labels.csv', dtype='int')
+    x_train = np.loadtxt('ardis/data/ARDIS_train_2828.csv', dtype='float32') / 255  # scale
+    y_train = np.loadtxt('ardis/data/ARDIS_train_labels.csv', dtype='int')
     x_train, y_train = shuffle(x_train, y_train)
 
-    x_test = np.loadtxt('data/ARDIS_test_2828.csv', dtype='float32') / 255  # scale
-    y_test = np.loadtxt('data/ARDIS_test_labels.csv', dtype='int')
+    x_test = np.loadtxt('ardis/data/ARDIS_test_2828.csv', dtype='float32') / 255  # scale
+    y_test = np.loadtxt('ardis/data/ARDIS_test_labels.csv', dtype='int')
     
     # Reshape to be [samples][channels][width][height]
     x_train = x_train.reshape(x_train.shape[0], 1, 28, 28)
@@ -139,12 +139,6 @@ def main():
     y_train = torch.from_numpy(y_train)
     dataset_train = TensorDataset(x_train, y_train)
     train_loader = DataLoader(dataset_train, **kwargs)
-    # print('Min Pixel Value: {} \nMax Pixel Value: {}'.format(dataset_train.data.min(),
-    #                                                         dataset_train.data.max()))
-    # print('Mean Pixel Value {} \nPixel Values Std: {}'.format(dataset_train.data.float().mean(),
-    #                                                          dataset_train.data.float().std()))
-    # print('Scaled Mean Pixel Value {} \nScaled Pixel Values Std: {}'.format(dataset_train.data.float().mean() / 255,
-    #                                                                         dataset_train.data.float().std() / 255))
     
     x_test = torch.from_numpy(x_test)
     y_test = torch.from_numpy(y_test)
