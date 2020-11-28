@@ -42,6 +42,34 @@ class Net(nn.Module):
         output = F.log_softmax(x, dim=1)
         return output
 
+class ArdisNet(nn.Module):
+    """ As presented in the paper at https://link.springer.com/article/10.1007/s00521-019-04163-3
+    ARDIS: a Swedish historical handwritten digit dataset.
+    See section Dataset IV"""
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 32, 5, 1)
+        self.conv2 = nn.Conv2d(32, 64, 5, 1)
+        self.dropout1 = nn.Dropout(0.25)  # probability of an element to be zeroed
+        self.dropout2 = nn.Dropout(0.50)
+        self.fc1 = nn.Linear(6400, 128)
+        self.fc2 = nn.Linear(128, 10)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = self.conv2(x)
+        x = F.relu(x)
+        x = F.max_pool2d(x, 2)
+        x = self.dropout1(x)
+        x = torch.flatten(x, 1)
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.dropout2(x)
+        x = self.fc2(x)
+        output = F.log_softmax(x, dim=1)
+        return output
+
 
 def train(args, model, device, train_loader, optimizer, epoch, writer):
     """ This is a very classic train loop per epoch consisting of
@@ -86,11 +114,11 @@ def test(model, device, test_loader, epoch, writer):
 
 def main():
     parser = argparse.ArgumentParser(description='Example of how a multi scale network benifits scale invarience.')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
+    parser.add_argument('--epochs', type=int, default=20, metavar='N',
                         help='number of epochs to train (default: 5)')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
@@ -98,8 +126,8 @@ def main():
                         help='Learning rate step gamma (default: 0.7)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
-    parser.add_argument('--seed', type=int, default=1, metavar='S',
-                        help='random seed (default: 1)')
+    parser.add_argument('--seed', type=int, default=0, metavar='S',
+                        help='random seed (default: 0)')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
 
@@ -148,7 +176,7 @@ def main():
     # display_sample_images(train_loader)
     # display_sample_images(test_loader)
 
-    model = Net().to(device)
+    model = ArdisNet().to(device)
 
     writer = SummaryWriter('runs/' + 'ardis')
     torch.onnx.export(model, torch.randn(1, 1, 28, 28).to(device),
