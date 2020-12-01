@@ -8,7 +8,9 @@ from scipy.io import loadmat
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, roc_curve, f1_score, precision_recall_curve, confusion_matrix, average_precision_score
 from skimage.transform import rotate, AffineTransform, warp, resize
+from skimage import io
 from torch.utils.data import Dataset, DataLoader
+from PIL import Image
 from pudb import set_trace
 
 # Data download and extraction
@@ -56,7 +58,7 @@ labels[labels==-1] = 0
 data_df = pd.DataFrame(columns=["filenames"] + class_names)
 filenames = os.listdir(os.path.join(content_root, "original_images/"))
 data_df["filenames"] = np.array(sorted(list(map(lambda x:int(x[:-4]),np.array(filenames)))))
-data_df['filenames'] = data_df['filenames'].apply(lambda x:'content/original_images/'+str(x)+'.jpg')
+data_df['filenames'] = data_df['filenames'].apply(lambda x:os.path.join(content_root, 'original_images/') + str(x) + '.jpg')
 data_df[class_names] = np.array(labels)
 
 #Applying Label Powerset Tranformation
@@ -118,11 +120,10 @@ print('negative weights', negative_weights)
 #{'desert': 0.7696614914736574, 'mountains': 0.8388349514563107, 'sea': 0.7667342799188641, 'sunset': 0.9097472924187726, 'trees': 0.90892696122633}
 
 
-# Calculating the Image Dimensions
+# Calculating the Image Dimensions of the first, use that for the rest
 img = imageio.imread(os.path.join(content_root, 'original_images/1.jpg'))
 H, W, _ = img.shape
-print(H, W)  #256 384
-
+print(f'image shape: {H}, {W}')
 
 class NatureDataset(Dataset):
     """multi-label dataset"""
@@ -153,12 +154,19 @@ class NatureDataset(Dataset):
         for i in range(self.batch_size):
             # image = img_to_array(load_img(self.all_files['filenames'][idx * self.batch_size+i],
             #                               target_size=(self.H, self.W)))
-            # https://stackoverflow.com/questions/50420168/how-do-i-load-up-an-image-and-convert-it-to-a-proper-tensor-for-pytorch            
+            # https://stackoverflow.com/questions/50420168/how-do-i-load-up-an-image-and-convert-it-to-a-proper-tensor-for-pytorch
+            # image = Image.open(self.all_files['filenames'][idx * self.batch_size + i]) # use pillow to open a file
+            image = io.imread(self.all_files['filenames'][idx * self.batch_size + i]) # use pillow to open a file
+            image = resize(image, (self.H, self.W))
+            set_trace()
+
             y = self.all_files.iloc[idx * self.batch_size+i][class_names].values.astype(np.float32)
       
             # If there is any transform method, apply it onto the image
             if self.augmentation:
-                image = rotate(image,np.random.uniform(-30, 30), preserve_range=True)
+                image = rotate(image, np.random.uniform(-30, 30), preserve_range=True)
+
+                # image = image.rotate(np.random.uniform(-30, 30), expand=False)
                 scale = np.random.uniform(1.0, 1.25)
                 tx = np.random.uniform(0, 20)
                 ty = np.random.uniform(0, 20)
@@ -181,5 +189,5 @@ class NatureDataset(Dataset):
 train_dataset = NatureDataset(train=True, augmentation=True, preprocessing_fn=None, batch_size=8)
 
 for i in range(len(train_dataset)):
-    sample = train_dataset[i]
-    print(len(samle))
+    images, labels = train_dataset[i]
+    print(len(images), len(labels))
