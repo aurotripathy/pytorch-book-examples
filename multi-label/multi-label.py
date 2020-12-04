@@ -11,7 +11,9 @@ from skimage.transform import rotate, AffineTransform, warp, resize
 from skimage import io
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
-from pudb import set_trace
+from torch.tensor import permute
+
+# from pudb import set_trace
 
 # Data download and extraction
 #  wget http://www.lamda.nju.edu.cn/files/miml-image-data.rar
@@ -125,6 +127,9 @@ img = imageio.imread(os.path.join(content_root, 'original_images/1.jpg'))
 H, W, _ = img.shape
 print(f'image shape: {H}, {W}')
 
+def preprocess_input(images):
+        return images.torch.tensor.permute(0, 3, 1, 2)
+
 class NatureDataset(Dataset):
     """multi-label dataset"""
 
@@ -142,6 +147,7 @@ class NatureDataset(Dataset):
         else:
             self.all_files = val_df
 
+    
     def __len__(self):
         return self.all_files.shape[0] // self.batch_size
     
@@ -158,7 +164,7 @@ class NatureDataset(Dataset):
             # image = Image.open(self.all_files['filenames'][idx * self.batch_size + i]) # use pillow to open a file
             image = io.imread(self.all_files['filenames'][idx * self.batch_size + i]) # use pillow to open a file
             image = resize(image, (self.H, self.W))
-            set_trace()
+            # set_trace()
 
             y = self.all_files.iloc[idx * self.batch_size+i][class_names].values.astype(np.float32)
       
@@ -186,8 +192,26 @@ class NatureDataset(Dataset):
         
         return images, labels
 
-train_dataset = NatureDataset(train=True, augmentation=True, preprocessing_fn=None, batch_size=8)
+# Custom Loss Function for imbalanced classes
+def loss_fn(y_true, y_pred):
+    loss = 0
+    loss -= (positive_weights['desert'] * y_true[0] * K.log(y_pred[0]) +
+             negative_weights['desert'] * (1 - y_true[0]) * K.log(1 - y_pred[0]))
+    loss -= (positive_weights['mountains'] * y_true[1] * K.log(y_pred[1]) +
+             negative_weights['mountains'] * (1 - y_true[1]) * K.log(1 - y_pred[1]))
+    loss -= (positive_weights['sea'] * y_true[2] * K.log(y_pred[2]) +
+             negative_weights['sea'] * (1 - y_true[2])* K.log(1 - y_pred[2]))
+    loss -= (positive_weights['sunset'] * y_true[3] * K.log(y_pred[3]) +
+             negative_weights['sunset'] * (1 - y_true[3]) * K.log(1 - y_pred[3]))
+    loss -= (positive_weights['trees'] * y_true[4] * K.log(y_pred[4]) +
+             negative_weights['trees'] * (1 - y_true[4]) * K.log(1 - y_pred[4]))
+
+    return loss
+
+    
+train_dataset = NatureDataset(train=True, augmentation=True, preprocessing_fn=preprocess_input, batch_size=8)
 
 for i in range(len(train_dataset)):
+    # batch_size, height, width, channel
     images, labels = train_dataset[i]
     print(len(images), len(labels))
