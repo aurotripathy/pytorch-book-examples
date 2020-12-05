@@ -1,4 +1,9 @@
 # https://medium.com/the-owl/imbalanced-multilabel-image-classification-using-keras-fbd8c60d7a4b
+import torch
+import torchvision
+import torch.optim as optim
+from torch.optim import lr_scheduler
+import torch.nn as nn
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,7 +16,7 @@ from skimage.transform import rotate, AffineTransform, warp, resize
 from skimage import io
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
-from torch.tensor import permute
+
 
 # from pudb import set_trace
 
@@ -128,7 +133,7 @@ H, W, _ = img.shape
 print(f'image shape: {H}, {W}')
 
 def preprocess_input(images):
-        return images.torch.tensor.permute(0, 3, 1, 2)
+        return torch.from_numpy(images).permute(0, 3, 1, 2)
 
 class NatureDataset(Dataset):
     """multi-label dataset"""
@@ -210,6 +215,19 @@ def loss_fn(y_true, y_pred):
 
     
 train_dataset = NatureDataset(train=True, augmentation=True, preprocessing_fn=preprocess_input, batch_size=8)
+
+model = torchvision.models.resnet50(pretrained=True)
+NUM_CLASSES = 5
+num_ftrs = model.fc.in_features
+model.fc = torch.nn.Linear(num_ftrs, NUM_CLASSES)
+device = torch.device("cuda" if torch.cuda.is_available else "cpu")
+criterion = nn.BCEWithLogitsLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+sgdr_partial = lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=0.005 )
+
+
+
+print(model)
 
 for i in range(len(train_dataset)):
     # batch_size, height, width, channel
