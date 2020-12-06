@@ -3,6 +3,7 @@ import torch
 import torchvision
 import torch.optim as optim
 from torch.optim import lr_scheduler
+from torchvision import transforms
 import torch.nn as nn
 import numpy as np
 import pandas as pd
@@ -221,33 +222,52 @@ class NatureDatasetSingle(Dataset):
         # image = img_to_array(load_img(self.all_files['filenames'][idx * self.batch_size+i],
         #                               target_size=(self.H, self.W)))
         # https://stackoverflow.com/questions/50420168/how-do-i-load-up-an-image-and-convert-it-to-a-proper-tensor-for-pytorch
-        # image = Image.open(self.all_files['filenames'][idx * self.batch_size + i]) # use pillow to open a file
-        image = io.imread(self.all_files['filenames'][idx]) # use pillow to open a file
-        image = resize(image, (self.H, self.W))
+        image = Image.open(self.all_files['filenames'][idx]) # use pillow to open a file
+        # image = io.imread(self.all_files['filenames'][idx]) # use pillow to open a file
+        label = self.all_files.iloc[idx][class_names].values.astype(np.float32)
 
-        y = self.all_files.iloc[idx][class_names].values.astype(np.float32)
-        label = y.reshape(5)
 
         # If there is any transform method, apply it onto the image
-        if self.augmentation:
-            image = rotate(image, np.random.uniform(-30, 30), preserve_range=True)
+        # if self.augmentation:
+        #     image = rotate(image, np.random.uniform(-30, 30), preserve_range=True)
 
         # image = image.rotate(np.random.uniform(-30, 30), expand=False)
-        scale = np.random.uniform(1.0, 1.25)
-        tx = np.random.uniform(0, 20)
-        ty = np.random.uniform(0, 20)
-        image = warp(image,
-                    AffineTransform(matrix=np.array([[scale, 0, tx],
-                                                    [0,scale,  ty],
-                                                    [0,   0,   1]])).inverse,
-                                                    preserve_range=True)
-        if np.random.choice([True, False]):
-            image = np.flip(image, axis= 1)
+        # scale = np.random.uniform(1.0, 1.25)
+        # tx = np.random.uniform(0, 20)
+        # ty = np.random.uniform(0, 20)
+        # image = warp(image,
+        #             AffineTransform(matrix=np.array([[scale, 0, tx],
+        #                                             [0,scale,  ty],
+        #                                             [0,   0,   1]])).inverse,
+        #                                             preserve_range=True)
+        # if np.random.choice([True, False]):
+        #     image = np.flip(image, axis= 1)
         
         if self.preprocessing_fn:
-            image = self.preprocessing_fn(image)
+            # image = self.preprocessing_fn(image)
+            image = transform(image)
         
         return image, label
+
+
+class MyDataset(Dataset):
+  def __init__(self , csv_file , img_dir , transforms=None ):
+    
+    self.df = pd.read_csv(csv_file)
+    self.img_dir = img_dir
+    self.transforms = transforms
+    
+  def __getitem__(self,idx):
+    d = self.df.iloc[idx.item()]
+    image = Image.open(self.img_dir/d.image).convert("RGB")
+    label = torch.tensor(d[1:].tolist() , dtype=torch.float32)
+    
+    if self.transforms is not None:
+      image = self.transforms(image)
+    return image,label
+  
+  def __len__(self):
+    return len(self.df)
 
 # Custom Loss Function for imbalanced classes
 def loss_fn(y_true, y_pred):
@@ -270,7 +290,7 @@ from sklearn.metrics import precision_score,f1_score
 
 def train(model, data_loader, criterion, optimizer, scheduler, num_epochs=5):
 
-  for epoch in trange(num_epochs,desc="Epochs"):
+  for epoch in trange(num_epochs, desc="Epochs"):
     result = []
     for phase in ['train', 'val']:
       if phase=="train":     # put the model in training mode
@@ -307,7 +327,14 @@ def train(model, data_loader, criterion, optimizer, scheduler, num_epochs=5):
 
       result.append('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
     print(result)
-    
+
+
+batch_size=32
+transform = transforms.Compose([transforms.Resize((224,224)) , 
+                               transforms.ToTensor(),
+                               transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                               ])
+
 dataset = NatureDatasetSingle(train=True, augmentation=True, preprocessing_fn=preprocess_input)
 print('Dataset size:', len(dataset))
 partition_point = int(len(dataset)*0.12) 
@@ -319,6 +346,7 @@ device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 model = torchvision.models.resnet50(pretrained=True)
 NUM_CLASSES = 5
 num_ftrs = model.fc.in_features
+print('last layer number of features:', num_ftrs)
 model.fc = torch.nn.Linear(num_ftrs, NUM_CLASSES)
 model = model.to(device)
 print(model)
