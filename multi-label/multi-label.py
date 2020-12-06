@@ -226,7 +226,7 @@ class NatureDatasetSingle(Dataset):
         image = resize(image, (self.H, self.W))
 
         y = self.all_files.iloc[idx][class_names].values.astype(np.float32)
-        label = y.reshape(1, 5)
+        label = y.reshape(5)
 
         # If there is any transform method, apply it onto the image
         if self.augmentation:
