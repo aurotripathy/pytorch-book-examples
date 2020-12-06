@@ -219,29 +219,9 @@ class NatureDatasetSingle(Dataset):
         return self.all_files.shape[0]
     
     def __getitem__(self, idx):
-        # image = img_to_array(load_img(self.all_files['filenames'][idx * self.batch_size+i],
-        #                               target_size=(self.H, self.W)))
-        # https://stackoverflow.com/questions/50420168/how-do-i-load-up-an-image-and-convert-it-to-a-proper-tensor-for-pytorch
+    
         image = Image.open(self.all_files['filenames'][idx]) # use pillow to open a file
-        # image = io.imread(self.all_files['filenames'][idx]) # use pillow to open a file
         label = self.all_files.iloc[idx][class_names].values.astype(np.float32)
-
-
-        # If there is any transform method, apply it onto the image
-        # if self.augmentation:
-        #     image = rotate(image, np.random.uniform(-30, 30), preserve_range=True)
-
-        # image = image.rotate(np.random.uniform(-30, 30), expand=False)
-        # scale = np.random.uniform(1.0, 1.25)
-        # tx = np.random.uniform(0, 20)
-        # ty = np.random.uniform(0, 20)
-        # image = warp(image,
-        #             AffineTransform(matrix=np.array([[scale, 0, tx],
-        #                                             [0,scale,  ty],
-        #                                             [0,   0,   1]])).inverse,
-        #                                             preserve_range=True)
-        # if np.random.choice([True, False]):
-        #     image = np.flip(image, axis= 1)
         
         if self.preprocessing_fn:
             # image = self.preprocessing_fn(image)
@@ -359,3 +339,4 @@ sgdr_partial = lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=0.005 
 from tqdm import trange
 from sklearn.metrics import precision_score, f1_score
 train(model, data_loader, criterion, optimizer, sgdr_partial, num_epochs=10)
+print("Done")
