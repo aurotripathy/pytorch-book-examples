@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, roc_curve, f1_score, precision_recall_curve, confusion_matrix, average_precision_score
 from skimage.transform import rotate, AffineTransform, warp, resize
 from skimage import io
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from PIL import Image
 
 
@@ -132,8 +132,9 @@ img = imageio.imread(os.path.join(content_root, 'original_images/1.jpg'))
 H, W, _ = img.shape
 print(f'image shape: {H}, {W}')
 
-def preprocess_input(images):
-        return torch.from_numpy(images).permute(0, 3, 1, 2)
+def preprocess_input(image):
+    return torch.from_numpy(image.reshape(3, H, W)).type(torch.FloatTensor)
+    # return torch.from_numpy(image).permute(3, 1, 2)
 
 class NatureDataset(Dataset):
     """multi-label dataset"""
@@ -197,6 +198,57 @@ class NatureDataset(Dataset):
         
         return images, labels
 
+class NatureDatasetSingle(Dataset):
+    """multi-label dataset"""
+
+    def __init__(self, train=True, augmentation=False, preprocessing_fn=None):
+        self.train = train
+        self.H = H
+        self.W = W
+
+        self.augmentation = augmentation
+        self.preprocessing_fn = preprocessing_fn
+
+        if self.train:
+            self.all_files = train_df
+        else:
+            self.all_files = val_df
+
+    def __len__(self):
+        return self.all_files.shape[0]
+    
+    def __getitem__(self, idx):
+        # image = img_to_array(load_img(self.all_files['filenames'][idx * self.batch_size+i],
+        #                               target_size=(self.H, self.W)))
+        # https://stackoverflow.com/questions/50420168/how-do-i-load-up-an-image-and-convert-it-to-a-proper-tensor-for-pytorch
+        # image = Image.open(self.all_files['filenames'][idx * self.batch_size + i]) # use pillow to open a file
+        image = io.imread(self.all_files['filenames'][idx]) # use pillow to open a file
+        image = resize(image, (self.H, self.W))
+
+        y = self.all_files.iloc[idx][class_names].values.astype(np.float32)
+        label = y.reshape(1, 5)
+
+        # If there is any transform method, apply it onto the image
+        if self.augmentation:
+            image = rotate(image, np.random.uniform(-30, 30), preserve_range=True)
+
+        # image = image.rotate(np.random.uniform(-30, 30), expand=False)
+        scale = np.random.uniform(1.0, 1.25)
+        tx = np.random.uniform(0, 20)
+        ty = np.random.uniform(0, 20)
+        image = warp(image,
+                    AffineTransform(matrix=np.array([[scale, 0, tx],
+                                                    [0,scale,  ty],
+                                                    [0,   0,   1]])).inverse,
+                                                    preserve_range=True)
+        if np.random.choice([True, False]):
+            image = np.flip(image, axis= 1)
+        
+        if self.preprocessing_fn:
+            image = self.preprocessing_fn(image)
+        
+        return image, label
+
 # Custom Loss Function for imbalanced classes
 def loss_fn(y_true, y_pred):
     loss = 0
@@ -213,23 +265,69 @@ def loss_fn(y_true, y_pred):
 
     return loss
 
-    
-train_dataset = NatureDataset(train=True, augmentation=True, preprocessing_fn=preprocess_input, batch_size=8)
+from tqdm import trange
+from sklearn.metrics import precision_score,f1_score
 
+def train(model, data_loader, criterion, optimizer, scheduler, num_epochs=5):
+
+  for epoch in trange(num_epochs,desc="Epochs"):
+    result = []
+    for phase in ['train', 'val']:
+      if phase=="train":     # put the model in training mode
+        model.train()
+        scheduler.step()
+      else:     # put the model in validation mode
+        model.eval()
+       
+      # keep track of training and validation loss
+      running_loss = 0.0
+      running_corrects = 0.0  
+      
+      for data , target in data_loader[phase]:
+        data, target = data.to(device), target.to(device)
+
+        with torch.set_grad_enabled(phase=="train"):
+          output = model(data)
+          loss = criterion(output, target)
+          preds = torch.sigmoid(output).data > 0.5
+          preds = preds.to(torch.float32)
+          
+          if phase=="train"  :
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+        # statistics
+        running_loss += loss.item() * data.size(0)
+        running_corrects += f1_score(target.to("cpu").to(torch.int).numpy() ,preds.to("cpu").to(torch.int).numpy() , average="samples")  * data.size(0)
+        
+        
+      epoch_loss = running_loss / len(data_loader[phase].dataset)
+      epoch_acc = running_corrects / len(data_loader[phase].dataset)
+
+      result.append('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+    print(result)
+    
+dataset = NatureDatasetSingle(train=True, augmentation=True, preprocessing_fn=preprocess_input)
+print('Dataset size:', len(dataset))
+partition_point = int(len(dataset)*0.12) 
+trainset, valset  = random_split(dataset, [len(dataset) - partition_point, partition_point])
+data_loader = {"train": DataLoader(trainset , shuffle=True , batch_size=8),
+                "val": DataLoader(valset, shuffle=True, batch_size=8)}
+
+device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 model = torchvision.models.resnet50(pretrained=True)
 NUM_CLASSES = 5
 num_ftrs = model.fc.in_features
 model.fc = torch.nn.Linear(num_ftrs, NUM_CLASSES)
-device = torch.device("cuda" if torch.cuda.is_available else "cpu")
+model = model.to(device)
+print(model)
+
+
 criterion = nn.BCEWithLogitsLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 sgdr_partial = lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=0.005 )
 
-
-
-print(model)
-
-for i in range(len(train_dataset)):
-    # batch_size, height, width, channel
-    images, labels = train_dataset[i]
-    print(len(images), len(labels))
+from tqdm import trange
+from sklearn.metrics import precision_score, f1_score
+train(model, data_loader, criterion, optimizer, sgdr_partial, num_epochs=10)
