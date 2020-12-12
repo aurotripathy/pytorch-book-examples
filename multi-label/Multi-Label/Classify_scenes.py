@@ -83,8 +83,9 @@ transform = transforms.Compose([transforms.Resize((224,224)) ,
                                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
                                ])
 
+split = 0.2
 dataset = MyDataset("data.csv" , Path("original") , transform)
-valid_no = int(len(dataset)*0.12) 
+valid_no = int(len(dataset) * split) 
 trainset ,valset  = random_split( dataset , [len(dataset) -valid_no  ,valid_no])
 print(f"trainset len {len(trainset)} valset len {len(valset)}")
 dataloader = {"train":DataLoader(trainset , shuffle=True , batch_size=batch_size),
@@ -118,9 +119,9 @@ def create_model_plus_head():
 class ExtendedModel(nn.Module):
   def __init__(self, number_classes, dropout_prob=0.3, activation_func=nn.ReLU):
     super().__init__()
-    self.rn50 = models.resnet50(pretrained=True) # load the pretrained model
-    num_features = self.rn50.fc.in_features # get the no of on_features in last Linear unit
-    for param in self.rn50.parameters():
+    self.rn50_trunk = models.resnet50(pretrained=True) # load the pretrained model
+    num_features = self.rn50_trunk.fc.in_features # get the no of on_features in last Linear unit
+    for param in self.rn50_trunk.parameters():
       param.requires_grad_(False)
     self.features_lst = [num_features , num_features//2 , num_features//4]
     self.dropout_prob=dropout_prob
@@ -134,13 +135,12 @@ class ExtendedModel(nn.Module):
       layers.append(nn.BatchNorm1d(out_f))
       if self.dropout_prob !=0 : layers.append(nn.Dropout(self.dropout_prob))
     layers.append(nn.Linear(self.features_lst[-1] , self.number_classes))
-    top_head = nn.Sequential(*layers)
-    self.rn50.fc = top_head
-    print(self.rn50
-    )
+    head = nn.Sequential(*layers)
+    self.rn50_trunk.fc = head  # attach head
+    print(self.rn50_trunk)
 
   def forward(self, x):
-    x = self.rn50(x)
+    x = self.rn50_trunk(x)
     return x
 
 torch.manual_seed(0)
