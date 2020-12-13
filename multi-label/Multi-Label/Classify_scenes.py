@@ -13,7 +13,7 @@ from scipy.io import loadmat
 import os, copy
 
 
-classLabels = ["desert", "mountains", "sea", "sunset", "trees" ]
+class_labels = ["desert", "mountains", "sea", "sunset", "trees" ]
 print(torch.__version__)
 
 df = pd.DataFrame({"image": sorted([ int(x.name.strip(".jpg")) for x in Path("original").iterdir()])})
@@ -22,7 +22,7 @@ print(df.dtypes)
 df.image = df.image.str.cat([".jpg"]*len(df))
 
 
-for label in classLabels:
+for label in class_labels:
   df[label]=0
 with open("labels.json") as infile:
     s ="["
@@ -50,7 +50,7 @@ def visualizeImage(idx):
   fig,ax = plt.subplots()
   ax.imshow(image)
   ax.grid(False)
-  classes =  np.array(classLabels)[np.array(label,dtype=np.bool)]
+  classes =  np.array(class_labels)[np.array(label,dtype=np.bool)]
   for i , s in enumerate(classes):
     ax.text(0 , i*20  , s , verticalalignment='top', color="white", fontsize=16, weight='bold')
   plt.show()
@@ -86,7 +86,7 @@ transform = transforms.Compose([transforms.Resize((224,224)) ,
 split = 0.2
 dataset = MyDataset("data.csv" , Path("original") , transform)
 valid_no = int(len(dataset) * split) 
-trainset ,valset  = random_split( dataset , [len(dataset) -valid_no  ,valid_no])
+trainset, valset  = random_split( dataset , [len(dataset) -valid_no, valid_no])
 print(f"trainset len {len(trainset)} valset len {len(valset)}")
 dataloader = {"train":DataLoader(trainset , shuffle=True , batch_size=batch_size),
               "val": DataLoader(valset , shuffle=True , batch_size=batch_size)}
@@ -110,7 +110,7 @@ def create_model_plus_head():
   ## freeze the entire convolution base
   for param in model.parameters():
     param.requires_grad_(False)
-  top_head = create_head(num_features , len(classLabels)) # because ten classes
+  top_head = create_head(num_features , len(class_labels)) # because ten classes
   model.fc = top_head # replace the fully connected layer
   print(model)
   return model
@@ -143,6 +143,16 @@ class ExtendedModel(nn.Module):
     x = self.rn50_trunk(x)
     return x
 
+positive_weights = []
+negative_weights = []
+for c in range(5):
+  positive_weights.append(len(trainset) / (2 * float(sum([x[1][c]==1 for x in trainset]))))
+  negative_weights.append(len(trainset) / (2 * float(sum([x[1][c]==0 for x in trainset]))))
+
+positive_weights = torch.FloatTensor(positive_weights).to('cuda')
+print('positive weights', positive_weights)
+print('negative weights', negative_weights)
+
 torch.manual_seed(0)
 model = ExtendedModel(number_classes=5)
 # model = create_model_plus_head()
@@ -153,8 +163,16 @@ from torch.optim import lr_scheduler
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 
-criterion = nn.BCEWithLogitsLoss()
+# Custom Loss Function for imbalanced classes
+def loss_fn(y_true, y_pred):
+    loss = 0
+    for c in range(5):
+        loss -= positive_weights[str(c)] * y_true[c] * torch.log(y_pred[c]) + \
+                negative_weights[str(c)] * (1 - y_true[c]) * torch.log(1 - y_pred[c])
+    return loss
 
+
+criterion = nn.BCEWithLogitsLoss(pos_weight=positive_weights)
 # specify optimizer
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 sgdr_partial = lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=0.005 )
@@ -178,15 +196,15 @@ def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
       running_loss = 0.0
       running_corrects = 0.0  
       
-      for data , target in data_loader[phase]:
+      for data, target in data_loader[phase]:
         #load the data and target to respective device
-        data , target = data.to(device)  , target.to(device)
+        data, target = data.to(device), target.to(device)
 
         with torch.set_grad_enabled(phase=="train"):
           #feed the input
           output = model(data)
           #calculate the loss
-          loss = criterion(output,target)
+          loss = criterion(output, target)
           preds = torch.sigmoid(output).data > 0.5
           preds = preds.to(torch.float32)
           
