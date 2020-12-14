@@ -12,9 +12,10 @@ from pathlib import Path
 from scipy.io import loadmat
 import os, copy
 
+print(torch.__version__)
 
 class_labels = ["desert", "mountains", "sea", "sunset", "trees" ]
-print(torch.__version__)
+nb_classes = len(class_labels)
 
 df = pd.DataFrame({"image": sorted([ int(x.name.strip(".jpg")) for x in Path("original").iterdir()])})
 df.image = df.image.astype(np.str)
@@ -80,14 +81,13 @@ class MyDataset(Dataset):
 batch_size=32
 transform = transforms.Compose([transforms.Resize((224,224)) , 
                                transforms.ToTensor(),
-                               transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-                               ])
+                               transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
 split = 0.2
 dataset = MyDataset("data.csv" , Path("original") , transform)
 valid_no = int(len(dataset) * split) 
 trainset, valset  = random_split( dataset , [len(dataset) -valid_no, valid_no])
-print(f"trainset len {len(trainset)} valset len {len(valset)}")
+print(f"train set length: {len(trainset)}; val set length: {len(valset)}")
 dataloader = {"train":DataLoader(trainset , shuffle=True , batch_size=batch_size),
               "val": DataLoader(valset , shuffle=True , batch_size=batch_size)}
 
@@ -112,49 +112,49 @@ def create_model_plus_head():
     param.requires_grad_(False)
   top_head = create_head(num_features , len(class_labels)) # because ten classes
   model.fc = top_head # replace the fully connected layer
-  print(model)
+  # print(model)
   return model
 
 
-class ExtendedModel(nn.Module):
-  def __init__(self, number_classes, dropout_prob=0.3, activation_func=nn.ReLU):
+class ExtendedResNetModel(nn.Module):
+  """ Extend ResNet with three new fully connected layers and attaching them as a head to a ResNet50 trunk"""
+  def __init__(self, nb_classes, dropout_prob=0.3, activation_func=nn.ReLU):
     super().__init__()
-    self.rn50_trunk = models.resnet50(pretrained=True) # load the pretrained model
-    num_features = self.rn50_trunk.fc.in_features # get the no of on_features in last Linear unit
-    for param in self.rn50_trunk.parameters():
+    self.rn50_trunk_p_head = models.resnet50(pretrained=True) # load the pretrained model as head
+    nb_features = self.rn50_trunk_p_head.fc.in_features # get the nb of in_features in last Linear unit
+    for param in self.rn50_trunk_p_head.parameters():
       param.requires_grad_(False)
-    self.features_lst = [num_features , num_features//2 , num_features//4]
-    self.dropout_prob=dropout_prob
+    self.dropout_prob = dropout_prob
     self.activation_func = activation_func
-    self.number_classes = number_classes
 
+    self.nb_features_lst = [nb_features, nb_features // 2, nb_features // 4]
     layers = []
-    for in_f, out_f in zip(self.features_lst[:-1] , self.features_lst[1:]):
-      layers.append(nn.Linear(in_f , out_f))
+    for in_f, out_f in zip(self.nb_features_lst[:-1] , self.nb_features_lst[1:]):
+      layers.append(nn.Linear(in_f, out_f))
       layers.append(activation_func())
-      layers.append(nn.BatchNorm1d(out_f))
+      # layers.append(nn.BatchNorm1d(out_f))
       if self.dropout_prob !=0 : layers.append(nn.Dropout(self.dropout_prob))
-    layers.append(nn.Linear(self.features_lst[-1] , self.number_classes))
+    layers.append(nn.Linear(self.nb_features_lst[-1], nb_classes)) # final layer
     head = nn.Sequential(*layers)
-    self.rn50_trunk.fc = head  # attach head
-    print(self.rn50_trunk)
+    self.rn50_trunk_p_head.fc = head  # attach head
+    # print(self.rn50_trunk_p_head)
 
   def forward(self, x):
-    x = self.rn50_trunk(x)
+    x = self.rn50_trunk_p_head(x)
     return x
 
 positive_weights = []
-negative_weights = []
-for c in range(5):
-  positive_weights.append(len(trainset) / (2 * float(sum([x[1][c]==1 for x in trainset]))))
-  negative_weights.append(len(trainset) / (2 * float(sum([x[1][c]==0 for x in trainset]))))
+for c in range(nb_classes):
+  positive_cnt =  float(sum([x[1][c] == 1 for x in trainset]))
+  negative_cnt = float(sum([x[1][c] == 0 for x in trainset]))
+  pos_weight = negative_cnt/positive_cnt
+  positive_weights.append(pos_weight)
 
 positive_weights = torch.FloatTensor(positive_weights).to('cuda')
 print('positive weights', positive_weights)
-print('negative weights', negative_weights)
 
 torch.manual_seed(0)
-model = ExtendedModel(number_classes=5)
+model = ExtendedResNetModel(nb_classes=nb_classes)
 # model = create_model_plus_head()
 
 import torch.optim as optim
@@ -163,17 +163,7 @@ from torch.optim import lr_scheduler
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 
-# Custom Loss Function for imbalanced classes
-def loss_fn(y_true, y_pred):
-    loss = 0
-    for c in range(5):
-        loss -= positive_weights[str(c)] * y_true[c] * torch.log(y_pred[c]) + \
-                negative_weights[str(c)] * (1 - y_true[c]) * torch.log(1 - y_pred[c])
-    return loss
-
-
 criterion = nn.BCEWithLogitsLoss(pos_weight=positive_weights)
-# specify optimizer
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 sgdr_partial = lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=0.005 )
 
@@ -205,7 +195,8 @@ def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
           output = model(data)
           #calculate the loss
           loss = criterion(output, target)
-          preds = torch.sigmoid(output).data > 0.5
+          # preds = torch.sigmoid(output).data > 0.5
+          preds = output.data > 0.5
           preds = preds.to(torch.float32)
           
           if phase=="train"  :
@@ -228,4 +219,4 @@ def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
       result.append('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
     print(result)
 
-train(model,dataloader , criterion, optimizer,sgdr_partial,num_epochs=10)
+train(model,dataloader , criterion, optimizer,sgdr_partial,num_epochs=15)
