@@ -94,30 +94,6 @@ print(f"train set length: {len(trainset)}; val set length: {len(valset)}")
 dataloader = {"train":DataLoader(trainset , shuffle=True , batch_size=batch_size),
               "val": DataLoader(valset , shuffle=True , batch_size=batch_size)}
 
-def create_head(num_features, number_classes, dropout_prob=0.3, activation_func=nn.ReLU):
-  features_lst = [num_features , num_features//2 , num_features//4]
-  layers = []
-  for in_f ,out_f in zip(features_lst[:-1] , features_lst[1:]):
-    layers.append(nn.Linear(in_f , out_f))
-    layers.append(activation_func())
-    layers.append(nn.BatchNorm1d(out_f))
-    if dropout_prob !=0 : layers.append(nn.Dropout(dropout_prob))
-  layers.append(nn.Linear(features_lst[-1] , number_classes))
-  return nn.Sequential(*layers)
-
-def create_trunk_plus_head():
-  model = models.resnet50(pretrained=True) # load the pretrained model
-  num_features = model.fc.in_features # get the no of on_features in last Linear unit
-  print(num_features)
-  ## freeze the entire convolution base
-  for param in model.parameters():
-    param.requires_grad_(False)
-  top_head = create_head(num_features , len(class_labels)) # because ten classes
-  model.fc = top_head # replace the fully connected layer
-  # print(model)
-  return model
-
-
 class ExtendedResNetModel(nn.Module):
   """ Extend ResNet with three new fully connected layers and attach them as a head to a ResNet50 trunk"""
   def __init__(self, nb_classes, dropout_prob=0.3, activation_func=nn.ReLU):
