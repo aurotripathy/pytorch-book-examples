@@ -79,9 +79,12 @@ class MyDataset(Dataset):
     return len(self.df)
 
 batch_size=32
-transform = transforms.Compose([transforms.Resize((224,224)) , 
+transform = transforms.Compose([transforms.Resize((240, 240)),
+                                transforms.RandomCrop((224, 224)),
+                               # transforms.RandomAffine(10), 
                                transforms.ToTensor(),
-                               transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+                               transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                               ])
 
 split = 0.2
 dataset = MyDataset("data.csv" , Path("original") , transform)
@@ -90,7 +93,6 @@ trainset, valset  = random_split( dataset , [len(dataset) -valid_no, valid_no])
 print(f"train set length: {len(trainset)}; val set length: {len(valset)}")
 dataloader = {"train":DataLoader(trainset , shuffle=True , batch_size=batch_size),
               "val": DataLoader(valset , shuffle=True , batch_size=batch_size)}
-
 
 def create_head(num_features, number_classes, dropout_prob=0.3, activation_func=nn.ReLU):
   features_lst = [num_features , num_features//2 , num_features//4]
@@ -103,7 +105,7 @@ def create_head(num_features, number_classes, dropout_prob=0.3, activation_func=
   layers.append(nn.Linear(features_lst[-1] , number_classes))
   return nn.Sequential(*layers)
 
-def create_model_plus_head():
+def create_trunk_plus_head():
   model = models.resnet50(pretrained=True) # load the pretrained model
   num_features = model.fc.in_features # get the no of on_features in last Linear unit
   print(num_features)
@@ -117,30 +119,31 @@ def create_model_plus_head():
 
 
 class ExtendedResNetModel(nn.Module):
-  """ Extend ResNet with three new fully connected layers and attaching them as a head to a ResNet50 trunk"""
+  """ Extend ResNet with three new fully connected layers and attach them as a head to a ResNet50 trunk"""
   def __init__(self, nb_classes, dropout_prob=0.3, activation_func=nn.ReLU):
     super().__init__()
-    self.rn50_trunk_p_head = models.resnet50(pretrained=True) # load the pretrained model as head
-    nb_features = self.rn50_trunk_p_head.fc.in_features # get the nb of in_features in last Linear unit
-    for param in self.rn50_trunk_p_head.parameters():
+    self.rn50_features = models.resnet50(pretrained=True) # load the pretrained model as feafures
+    nb_features = self.rn50_features.fc.in_features # get the nb of in_features in last Linear unit
+    for param in self.rn50_features.parameters():
       param.requires_grad_(False)
-    self.dropout_prob = dropout_prob
-    self.activation_func = activation_func
 
-    self.nb_features_lst = [nb_features, nb_features // 2, nb_features // 4]
+    head = self._create_head(nb_features, nb_classes, dropout_prob, activation_func)
+    self.rn50_features.fc = head  # attach head
+    # print(self.rn50_features)
+
+  def _create_head(self, num_features, number_classes, dropout_prob=0.3, activation_func=nn.ReLU):
+    features_lst = [num_features , num_features//2 , num_features//4]
     layers = []
-    for in_f, out_f in zip(self.nb_features_lst[:-1] , self.nb_features_lst[1:]):
-      layers.append(nn.Linear(in_f, out_f))
+    for in_f ,out_f in zip(features_lst[:-1] , features_lst[1:]):
+      layers.append(nn.Linear(in_f , out_f))
       layers.append(activation_func())
-      # layers.append(nn.BatchNorm1d(out_f))
-      if self.dropout_prob !=0 : layers.append(nn.Dropout(self.dropout_prob))
-    layers.append(nn.Linear(self.nb_features_lst[-1], nb_classes)) # final layer
-    head = nn.Sequential(*layers)
-    self.rn50_trunk_p_head.fc = head  # attach head
-    # print(self.rn50_trunk_p_head)
+      layers.append(nn.BatchNorm1d(out_f))
+      if dropout_prob !=0 : layers.append(nn.Dropout(dropout_prob))
+    layers.append(nn.Linear(features_lst[-1] , number_classes))
+    return nn.Sequential(*layers)
 
   def forward(self, x):
-    x = self.rn50_trunk_p_head(x)
+    x = self.rn50_features(x)
     return x
 
 positive_weights = []
@@ -169,7 +172,7 @@ sgdr_partial = lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=0.005 
 
 
 from tqdm import trange
-from sklearn.metrics import precision_score,f1_score
+from sklearn.metrics import precision_score, f1_score
 
 def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
 
@@ -210,7 +213,7 @@ def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
 
         # statistics
         running_loss += loss.item() * data.size(0)
-        running_corrects += f1_score(target.to("cpu").to(torch.int).numpy() ,preds.to("cpu").to(torch.int).numpy() , average="samples")  * data.size(0)
+        running_corrects += f1_score(target.to("cpu").to(torch.int).numpy(), preds.to("cpu").to(torch.int).numpy(), average="samples") * data.size(0)
         
         
       epoch_loss = running_loss / len(data_loader[phase].dataset)
@@ -219,4 +222,4 @@ def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
       result.append('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
     print(result)
 
-train(model,dataloader , criterion, optimizer,sgdr_partial,num_epochs=15)
+train(model,dataloader , criterion, optimizer,sgdr_partial,num_epochs=10)
