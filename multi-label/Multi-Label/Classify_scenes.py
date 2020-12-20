@@ -91,7 +91,7 @@ transform = transforms.Compose([transforms.Resize((240, 240)),
 split = 0.2
 dataset = SceneDataset("data.csv", Path("original"), transform)
 valid_no = int(len(dataset) * split)
-trainset, valset  = random_split( dataset, [len(dataset) -valid_no, valid_no])
+trainset, valset = random_split(dataset, [len(dataset) -valid_no, valid_no])
 print(f"train set size: {len(trainset)}; val set size: {len(valset)}")
 dataloader = {"train":DataLoader(trainset, shuffle=True, batch_size=batch_size),
               "val": DataLoader(valset, shuffle=True, batch_size=batch_size)}
