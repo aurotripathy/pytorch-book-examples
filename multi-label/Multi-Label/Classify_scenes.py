@@ -4,17 +4,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 from torch import nn
-import torch.nn.functional as F
 from torchvision import datasets, models, transforms
 import torch.optim as optim
 from torch.optim import lr_scheduler
 import json
-from torch.utils.data import Dataset, DataLoader ,random_split
+from torch.utils.data import Dataset, DataLoader, random_split
 from PIL import Image
 from pathlib import Path
 from scipy.io import loadmat
 from tqdm import trange
-from sklearn.metrics import f1_score, roc_auc_score, auc
+from sklearn.metrics import f1_score, roc_auc_score
 
 print(torch.__version__)
 
@@ -64,7 +63,7 @@ def visualize_image(idx):
 
 class SceneDataset(Dataset):
   def __init__(self, csv_file, img_dir, transforms=None):
-    
+    super().__init__()
     self.df = pd.read_csv(csv_file)
     self.img_dir = img_dir
     self.transforms = transforms
@@ -179,11 +178,8 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
           preds = preds.to(torch.float32)
           
           if phase == "train":
-            # backward pass: compute gradient of the loss with respect to model parameters
-            loss.backward()
-            # update the model parameters
-            optimizer.step()
-            # zero the grad to stop it from accumulating
+            loss.backward()  # compute gradient of the loss with respect to model parameters
+            optimizer.step()  # update the model parameters
             optimizer.zero_grad()
 
         running_loss += loss.item() * data.size(0)
