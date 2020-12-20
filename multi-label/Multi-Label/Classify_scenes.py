@@ -1,3 +1,4 @@
+import os, copy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -5,12 +6,15 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torchvision import datasets, models, transforms
+import torch.optim as optim
+from torch.optim import lr_scheduler
 import json
 from torch.utils.data import Dataset, DataLoader ,random_split
 from PIL import Image
 from pathlib import Path
 from scipy.io import loadmat
-import os, copy
+from tqdm import trange
+from sklearn.metrics import f1_score, roc_auc_score, auc
 
 print(torch.__version__)
 
@@ -37,7 +41,7 @@ print(df.head(10))
 
 df = pd.read_csv("data.csv")
 fig1, ax1 = plt.subplots()
-df.iloc[:,1:].sum(axis=0).plot.pie(autopct='%1.1f%%',shadow=True, startangle=90,ax=ax1)
+df.iloc[:, 1:].sum(axis=0).plot.pie(autopct='%1.1f%%', shadow=True, startangle=90, ax=ax1)
 ax1.axis("equal")
 # plt.show()
 
@@ -69,7 +73,7 @@ class SceneDataset(Dataset):
     # d = self.df.iloc[idx.item()]
     d = self.df.iloc[idx]
     image = Image.open(self.img_dir/d.image).convert("RGB")
-    label = torch.tensor(d[1:].tolist() , dtype=torch.float32)
+    label = torch.tensor(d[1:].tolist(), dtype=torch.float32)
     
     if self.transforms is not None:
       image = self.transforms(image)
@@ -78,7 +82,7 @@ class SceneDataset(Dataset):
   def __len__(self):
     return len(self.df)
 
-batch_size=32
+batch_size = 32
 transform = transforms.Compose([transforms.Resize((240, 240)),
                                 transforms.RandomCrop((224, 224)),
                                 transforms.RandomAffine(10),
@@ -124,9 +128,9 @@ class ExtendedResNetModel(nn.Module):
 
 positive_weights = []
 for c in range(nb_classes):
-  positive_cnt =  float(sum([x[1][c] == 1 for x in trainset]))
+  positive_cnt = float(sum([x[1][c] == 1 for x in trainset]))
   negative_cnt = float(sum([x[1][c] == 0 for x in trainset]))
-  pos_weight = negative_cnt/positive_cnt
+  pos_weight = negative_cnt / positive_cnt
   positive_weights.append(pos_weight)
 
 positive_weights = torch.FloatTensor(positive_weights).to('cuda')
@@ -134,21 +138,16 @@ print('positive weights', positive_weights)
 
 torch.manual_seed(0)
 model = ExtendedResNetModel(nb_classes=nb_classes)
-# model = create_model_plus_head()
 
-import torch.optim as optim
-from torch.optim import lr_scheduler
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 
 criterion = nn.BCEWithLogitsLoss(pos_weight=positive_weights)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-sgdr_partial = lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=0.005 )
+sgdr_partial = lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=0.005)
 
 
-from tqdm import trange
-from sklearn.metrics import f1_score, roc_auc_score, auc
 
 def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
 
@@ -180,7 +179,7 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
           preds = preds.to(torch.float32)
           
           if phase == "train":
-            # backward pass: compute gradient of the loss with respect to model parameters 
+            # backward pass: compute gradient of the loss with respect to model parameters
             loss.backward()
             # update the model parameters
             optimizer.step()
@@ -189,9 +188,11 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
 
         running_loss += loss.item() * data.size(0)
         running_corrects += f1_score(target.to("cpu").to(torch.int).numpy(),
-                                     preds.to("cpu").to(torch.int).numpy(), average="samples") * data.size(0)
+                                     preds.to("cpu").to(torch.int).numpy(),
+                                     average="samples") * data.size(0)
         running_roc_auc_score += roc_auc_score(target.to("cpu").to(torch.int).numpy(),
-                                               preds.to("cpu").to(torch.int).numpy(), average="samples") * data.size(0)
+                                               preds.to("cpu").to(torch.int).numpy(),
+                                               average="samples") * data.size(0)
         
       epoch_loss = running_loss / len(data_loader[phase].dataset)
       epoch_acc = running_corrects / len(data_loader[phase].dataset)
