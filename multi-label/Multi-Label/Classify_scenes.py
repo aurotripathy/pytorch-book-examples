@@ -14,8 +14,8 @@ from pathlib import Path
 from scipy.io import loadmat
 from sklearn.metrics import f1_score, roc_auc_score
 
-print('PyTorch version:', torch.__version__)
-print('torchvision version:', torchvision.__version__)
+print(f'PyTorch version: {torch.__version__}')
+print(f'torchvision version: {torchvision.__version__}')
 
 class_labels = ["desert", "mountains", "sea", "sunset", "trees" ]
 nb_classes = len(class_labels)
