@@ -56,9 +56,9 @@ def visualize_image(idx):
     ax.text(0 , i*20  , s , verticalalignment='top', color="white", fontsize=16, weight='bold')
   plt.show()
 
-visualize_image(52)
+# visualize_image(52)
 
-class MyDataset(Dataset):
+class SceneDataset(Dataset):
   def __init__(self, csv_file, img_dir, transforms=None):
     
     self.df = pd.read_csv(csv_file)
@@ -81,12 +81,12 @@ class MyDataset(Dataset):
 batch_size=32
 transform = transforms.Compose([transforms.Resize((240, 240)),
                                 transforms.RandomCrop((224, 224)),
-                                # transforms.RandomAffine(10),
+                                transforms.RandomAffine(10),
                                 transforms.ToTensor(),
                                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
 split = 0.2
-dataset = MyDataset("data.csv", Path("original"), transform)
+dataset = SceneDataset("data.csv", Path("original"), transform)
 valid_no = int(len(dataset) * split)
 trainset, valset  = random_split( dataset, [len(dataset) -valid_no, valid_no])
 print(f"train set size: {len(trainset)}; val set size: {len(valset)}")
@@ -106,16 +106,16 @@ class ExtendedResNetModel(nn.Module):
     self.rn50_features.fc = head  # attach head
     # print(self.rn50_features)
 
-  def _create_head(self, num_features, number_classes, dropout_prob=0.3, activation_func=nn.ReLU):
+  def _create_head(self, num_features, nb_classes, dropout_prob=0.3, activation_func=nn.ReLU):
     features_lst = [num_features, num_features//2, num_features//4]
     layers = []
     for in_f, out_f in zip(features_lst[:-1], features_lst[1:]):
-      layers.append(nn.Linear(in_f , out_f))
+      layers.append(nn.Linear(in_f, out_f))
       layers.append(activation_func())
       layers.append(nn.BatchNorm1d(out_f))
       if dropout_prob != 0:
         layers.append(nn.Dropout(dropout_prob))
-    layers.append(nn.Linear(features_lst[-1] , number_classes))
+    layers.append(nn.Linear(features_lst[-1], nb_classes))
     return nn.Sequential(*layers)
 
   def forward(self, x):
@@ -150,12 +150,12 @@ sgdr_partial = lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=0.005 
 from tqdm import trange
 from sklearn.metrics import precision_score, f1_score
 
-def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
+def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
 
-  for epoch in trange(num_epochs,desc="Epochs"):
+  for epoch in trange(nb_epochs, desc="Epochs"):
     result = []
     for phase in ['train', 'val']:
-      if phase=="train":     # put the model in training mode
+      if phase == "train":     # put the model in training mode
         model.train()
         scheduler.step()
       else:     # put the model in validation mode
@@ -169,7 +169,7 @@ def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
         #load the data and target to respective device
         data, target = data.to(device), target.to(device)
 
-        with torch.set_grad_enabled(phase=="train"):
+        with torch.set_grad_enabled(phase == "train"):
           #feed the input
           output = model(data)
           #calculate the loss
@@ -178,7 +178,7 @@ def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
           preds = output.data > 0.5
           preds = preds.to(torch.float32)
           
-          if phase=="train"  :
+          if phase == "train":
             # backward pass: compute gradient of the loss with respect to model parameters 
             loss.backward()
             # update the model parameters
@@ -194,7 +194,7 @@ def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
       epoch_loss = running_loss / len(data_loader[phase].dataset)
       epoch_acc = running_corrects / len(data_loader[phase].dataset)
 
-      result.append('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+      result.append('Epoch: {}: {} Loss: {:.4f} Acc: {:.4f}'.format(epoch, phase, epoch_loss, epoch_acc))
     print(result)
 
-train(model, dataloader, criterion, optimizer,sgdr_partial, num_epochs=10)
+train(model, dataloader, criterion, optimizer, sgdr_partial, nb_epochs=10)
