@@ -2,20 +2,20 @@ import os, copy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import torch
+import torch, torchvision
 from torch import nn
 from torchvision import datasets, models, transforms
 import torch.optim as optim
 from torch.optim import lr_scheduler
-import json
 from torch.utils.data import Dataset, DataLoader, random_split
+import json
 from PIL import Image
 from pathlib import Path
 from scipy.io import loadmat
-from tqdm import trange
 from sklearn.metrics import f1_score, roc_auc_score
 
-print(torch.__version__)
+print('PyTorch version:', torch.__version__)
+print('torchvision version:', torchvision.__version__)
 
 class_labels = ["desert", "mountains", "sea", "sunset", "trees" ]
 nb_classes = len(class_labels)
@@ -36,7 +36,7 @@ with open("labels.json") as infile:
     s[s<0] = 0
     df.iloc[:, 1:] = s
 df.to_csv("data.csv", index=False)
-print(df.head(10))
+# print(df.head(10))
 
 df = pd.read_csv("data.csv")
 fig1, ax1 = plt.subplots()
@@ -150,29 +150,25 @@ sgdr_partial = lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=0.005)
 
 def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
 
-  for epoch in trange(nb_epochs, desc="Epochs"):
+  for epoch in range(nb_epochs):
     result = []
     for phase in ['train', 'val']:
-      if phase == "train":     # put the model in training mode
+      if phase == "train":  # put model in training mode
         model.train()
         scheduler.step()
-      else:     # put the model in validation mode
+      else:  # put model in validation mode
         model.eval()
        
-      # keep track of training and validation loss
+      # Track for each epoch
       running_loss = 0.0
       running_corrects = 0.0
       running_roc_auc_score = 0.0
       
       for data, target in data_loader[phase]:
-        #load the data and target to respective device
         data, target = data.to(device), target.to(device)
-
         with torch.set_grad_enabled(phase == "train"):
-          #feed the input
-          output = model(data)
-          #calculate the loss
-          loss = criterion(output, target)
+          output = model(data)  # forward pass
+          loss = criterion(output, target)  
           # preds = torch.sigmoid(output).data > 0.5
           preds = output.data > 0.5
           preds = preds.to(torch.float32)
