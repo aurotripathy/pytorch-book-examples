@@ -48,12 +48,12 @@ def visualize_image(idx):
   label = fd[1:].tolist()
   print(image)
   image = Image.open("original/"+image)
-  fig,ax = plt.subplots()
+  fig, ax = plt.subplots()
   ax.imshow(image)
   ax.grid(False)
-  classes =  np.array(class_labels)[np.array(label,dtype=np.bool)]
-  for i , s in enumerate(classes):
-    ax.text(0 , i*20  , s , verticalalignment='top', color="white", fontsize=16, weight='bold')
+  classes =  np.array(class_labels)[np.array(label, dtype=np.bool)]
+  for i, s in enumerate(classes):
+    ax.text(0, i*20, s, verticalalignment='top', color="white", fontsize=16, weight='bold')
   plt.show()
 
 # visualize_image(52)
@@ -148,7 +148,7 @@ sgdr_partial = lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=0.005 
 
 
 from tqdm import trange
-from sklearn.metrics import precision_score, f1_score
+from sklearn.metrics import f1_score, roc_auc_score, auc
 
 def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
 
@@ -163,7 +163,8 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
        
       # keep track of training and validation loss
       running_loss = 0.0
-      running_corrects = 0.0  
+      running_corrects = 0.0
+      running_roc_auc_score = 0.0
       
       for data, target in data_loader[phase]:
         #load the data and target to respective device
@@ -189,12 +190,14 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
         running_loss += loss.item() * data.size(0)
         running_corrects += f1_score(target.to("cpu").to(torch.int).numpy(),
                                      preds.to("cpu").to(torch.int).numpy(), average="samples") * data.size(0)
-        
+        running_roc_auc_score += roc_auc_score(target.to("cpu").to(torch.int).numpy(),
+                                               preds.to("cpu").to(torch.int).numpy(), average="samples") * data.size(0)
         
       epoch_loss = running_loss / len(data_loader[phase].dataset)
       epoch_acc = running_corrects / len(data_loader[phase].dataset)
+      epoch_roc_auc_score = running_roc_auc_score / len(data_loader[phase].dataset)
 
-      result.append('Epoch: {}: {} Loss: {:.4f} Acc: {:.4f}'.format(epoch, phase, epoch_loss, epoch_acc))
+      result.append('{}: Loss: {:.4f} Acc: {:.4f} AUC:{:.4f}'.format(phase.upper(), epoch_loss, epoch_acc, epoch_roc_auc_score))
     print(result)
 
 train(model, dataloader, criterion, optimizer, sgdr_partial, nb_epochs=10)
