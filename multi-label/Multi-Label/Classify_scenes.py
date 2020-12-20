@@ -42,7 +42,7 @@ ax1.axis("equal")
 # plt.show()
 
 
-def visualizeImage(idx):
+def visualize_image(idx):
   fd = df.iloc[idx]
   image = fd.image
   label = fd[1:].tolist()
@@ -56,16 +56,16 @@ def visualizeImage(idx):
     ax.text(0 , i*20  , s , verticalalignment='top', color="white", fontsize=16, weight='bold')
   plt.show()
 
-visualizeImage(52)
+visualize_image(52)
 
 class MyDataset(Dataset):
-  def __init__(self , csv_file , img_dir , transforms=None ):
+  def __init__(self, csv_file, img_dir, transforms=None):
     
     self.df = pd.read_csv(csv_file)
     self.img_dir = img_dir
     self.transforms = transforms
     
-  def __getitem__(self,idx):
+  def __getitem__(self, idx):
     # d = self.df.iloc[idx.item()]
     d = self.df.iloc[idx]
     image = Image.open(self.img_dir/d.image).convert("RGB")
@@ -73,7 +73,7 @@ class MyDataset(Dataset):
     
     if self.transforms is not None:
       image = self.transforms(image)
-    return image,label
+    return image, label
   
   def __len__(self):
     return len(self.df)
@@ -81,18 +81,17 @@ class MyDataset(Dataset):
 batch_size=32
 transform = transforms.Compose([transforms.Resize((240, 240)),
                                 transforms.RandomCrop((224, 224)),
-                               # transforms.RandomAffine(10), 
-                               transforms.ToTensor(),
-                               transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                               ])
+                                # transforms.RandomAffine(10),
+                                transforms.ToTensor(),
+                                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
 split = 0.2
-dataset = MyDataset("data.csv" , Path("original") , transform)
-valid_no = int(len(dataset) * split) 
-trainset, valset  = random_split( dataset , [len(dataset) -valid_no, valid_no])
-print(f"train set length: {len(trainset)}; val set length: {len(valset)}")
-dataloader = {"train":DataLoader(trainset , shuffle=True , batch_size=batch_size),
-              "val": DataLoader(valset , shuffle=True , batch_size=batch_size)}
+dataset = MyDataset("data.csv", Path("original"), transform)
+valid_no = int(len(dataset) * split)
+trainset, valset  = random_split( dataset, [len(dataset) -valid_no, valid_no])
+print(f"train set size: {len(trainset)}; val set size: {len(valset)}")
+dataloader = {"train":DataLoader(trainset, shuffle=True, batch_size=batch_size),
+              "val": DataLoader(valset, shuffle=True, batch_size=batch_size)}
 
 class ExtendedResNetModel(nn.Module):
   """ Extend ResNet with three new fully connected layers and attach them as a head to a ResNet50 trunk"""
@@ -108,13 +107,14 @@ class ExtendedResNetModel(nn.Module):
     # print(self.rn50_features)
 
   def _create_head(self, num_features, number_classes, dropout_prob=0.3, activation_func=nn.ReLU):
-    features_lst = [num_features , num_features//2 , num_features//4]
+    features_lst = [num_features, num_features//2, num_features//4]
     layers = []
-    for in_f ,out_f in zip(features_lst[:-1] , features_lst[1:]):
+    for in_f, out_f in zip(features_lst[:-1], features_lst[1:]):
       layers.append(nn.Linear(in_f , out_f))
       layers.append(activation_func())
       layers.append(nn.BatchNorm1d(out_f))
-      if dropout_prob !=0 : layers.append(nn.Dropout(dropout_prob))
+      if dropout_prob != 0:
+        layers.append(nn.Dropout(dropout_prob))
     layers.append(nn.Linear(features_lst[-1] , number_classes))
     return nn.Sequential(*layers)
 
@@ -186,10 +186,9 @@ def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
             # zero the grad to stop it from accumulating
             optimizer.zero_grad()
 
-
-        # statistics
         running_loss += loss.item() * data.size(0)
-        running_corrects += f1_score(target.to("cpu").to(torch.int).numpy(), preds.to("cpu").to(torch.int).numpy(), average="samples") * data.size(0)
+        running_corrects += f1_score(target.to("cpu").to(torch.int).numpy(),
+                                     preds.to("cpu").to(torch.int).numpy(), average="samples") * data.size(0)
         
         
       epoch_loss = running_loss / len(data_loader[phase].dataset)
@@ -198,4 +197,4 @@ def train(model , data_loader , criterion , optimizer ,scheduler, num_epochs=5):
       result.append('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
     print(result)
 
-train(model,dataloader , criterion, optimizer,sgdr_partial,num_epochs=10)
+train(model, dataloader, criterion, optimizer,sgdr_partial, num_epochs=10)
