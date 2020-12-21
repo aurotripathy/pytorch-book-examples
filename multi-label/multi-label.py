@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import shutil, os, time, random, copy
-import imageio
+# import imageio
 from scipy.io import loadmat
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, roc_curve, f1_score, precision_recall_curve, confusion_matrix, average_precision_score
@@ -17,7 +17,8 @@ from skimage.transform import rotate, AffineTransform, warp, resize
 from skimage import io
 from torch.utils.data import Dataset, DataLoader, random_split
 from PIL import Image
-
+from tqdm import trange
+from sklearn.metrics import precision_score, f1_score
 
 # from pudb import set_trace
 
@@ -63,7 +64,7 @@ print(class_names)
 labels = copy.deepcopy(proc_mat['targets'].T)
 labels[labels==-1] = 0
 
-data_df = pd.DataFrame(columns=["filenames"] + class_names)
+data_df = pd.DataFrame(columns=["filenames"] + class_names)  # empty dataframe 
 filenames = os.listdir(os.path.join(content_root, "original_images/"))
 data_df["filenames"] = np.array(sorted(list(map(lambda x:int(x[:-4]),np.array(filenames)))))
 data_df['filenames'] = data_df['filenames'].apply(lambda x:os.path.join(content_root, 'original_images/') + str(x) + '.jpg')
@@ -129,106 +130,9 @@ print('negative weights', negative_weights)
 
 
 # Calculating the Image Dimensions of the first, use that for the rest
-img = imageio.imread(os.path.join(content_root, 'original_images/1.jpg'))
-H, W, _ = img.shape
-print(f'image shape: {H}, {W}')
-
-def preprocess_input(image):
-    return torch.from_numpy(image.reshape(3, H, W)).type(torch.FloatTensor)
-    # return torch.from_numpy(image).permute(3, 1, 2)
-
-class NatureDataset(Dataset):
-    """multi-label dataset"""
-
-    def __init__(self, train=True, augmentation=False, preprocessing_fn=None, batch_size= 16):
-        self.train = train
-        self.batch_size = batch_size
-        self.H = H
-        self.W = W
-
-        self.augmentation = augmentation
-        self.preprocessing_fn = preprocessing_fn
-
-        if self.train:
-            self.all_files = train_df
-        else:
-            self.all_files = val_df
-
-    
-    def __len__(self):
-        return self.all_files.shape[0] // self.batch_size
-    
-    def on_epoch_end(self):
-        self.all_files = self.all_files.sample(frac=1).reset_index(drop=True)
-    
-    def __getitem__(self, idx):
-        images = np.array([], dtype=np.float32).reshape((0, self.H, self.W, 3))
-        labels = np.array([], dtype=np.float32).reshape((0, 5))
-        for i in range(self.batch_size):
-            # image = img_to_array(load_img(self.all_files['filenames'][idx * self.batch_size+i],
-            #                               target_size=(self.H, self.W)))
-            # https://stackoverflow.com/questions/50420168/how-do-i-load-up-an-image-and-convert-it-to-a-proper-tensor-for-pytorch
-            # image = Image.open(self.all_files['filenames'][idx * self.batch_size + i]) # use pillow to open a file
-            image = io.imread(self.all_files['filenames'][idx * self.batch_size + i]) # use pillow to open a file
-            image = resize(image, (self.H, self.W))
-            # set_trace()
-
-            y = self.all_files.iloc[idx * self.batch_size+i][class_names].values.astype(np.float32)
-      
-            # If there is any transform method, apply it onto the image
-            if self.augmentation:
-                image = rotate(image, np.random.uniform(-30, 30), preserve_range=True)
-
-                # image = image.rotate(np.random.uniform(-30, 30), expand=False)
-                scale = np.random.uniform(1.0, 1.25)
-                tx = np.random.uniform(0, 20)
-                ty = np.random.uniform(0, 20)
-                image = warp(image,
-                             AffineTransform(matrix=np.array([[scale, 0, tx],
-                                                              [0,scale,  ty],
-                                                              [0,   0,   1]])).inverse,
-                             preserve_range=True)
-            #RANDOM HORIZONTAL FLIPPING
-            if np.random.choice([True, False]):
-                image = np.flip(image, axis= 1)
-            images = np.append(images, np.expand_dims(image, axis=0), axis=0)
-            labels = np.append(labels,y.reshape(1, 5), axis=0)
-        
-        if self.preprocessing_fn:
-            images = self.preprocessing_fn(images)
-        
-        return images, labels
-
-class NatureDatasetSingle(Dataset):
-    """multi-label dataset"""
-
-    def __init__(self, train=True, augmentation=False, preprocessing_fn=None):
-        self.train = train
-        self.H = H
-        self.W = W
-
-        self.augmentation = augmentation
-        self.preprocessing_fn = preprocessing_fn
-
-        if self.train:
-            self.all_files = train_df
-        else:
-            self.all_files = val_df
-
-    def __len__(self):
-        return self.all_files.shape[0]
-    
-    def __getitem__(self, idx):
-    
-        image = Image.open(self.all_files['filenames'][idx]) # use pillow to open a file
-        label = self.all_files.iloc[idx][class_names].values.astype(np.float32)
-        
-        if self.preprocessing_fn:
-            # image = self.preprocessing_fn(image)
-            image = transform(image)
-        
-        return image, label
-
+# img = imageio.imread(os.path.join(content_root, 'original_images/1.jpg'))
+# H, W, _ = img.shape
+# print(f'image shape: {H}, {W}')
 
 class MyDataset(Dataset):
   def __init__(self , csv_file , img_dir , transforms=None ):
@@ -265,8 +169,32 @@ def loss_fn(y_true, y_pred):
 
     return loss
 
-from tqdm import trange
-from sklearn.metrics import precision_score,f1_score
+class NatureDataset(Dataset):
+    """multi-label dataset"""
+
+    def __init__(self, train=True, augmentation=False, preprocessing_fn=None):
+        self.train = train
+
+        self.augmentation = augmentation
+        self.preprocessing_fn = preprocessing_fn
+
+        if self.train:
+            self.all_files = train_df
+        else:
+            self.all_files = val_df
+
+    def __len__(self):
+        return self.all_files.shape[0]
+    
+    def __getitem__(self, idx):
+    
+        image = Image.open(self.all_files['filenames'][idx]) # use pillow to open a file
+        label = self.all_files.iloc[idx][class_names].values.astype(np.float32)
+        
+        if self.preprocessing_fn:
+            image = self.preprocessing_fn(image)
+        
+        return image, label
 
 def train(model, data_loader, criterion, optimizer, scheduler, num_epochs=5):
 
@@ -310,24 +238,40 @@ def train(model, data_loader, criterion, optimizer, scheduler, num_epochs=5):
 
 
 batch_size=32
-transform = transforms.Compose([transforms.Resize((224,224)) , 
-                               transforms.ToTensor(),
-                               transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+transform = transforms.Compose([transforms.Resize((224, 224)),
+                                transforms.ToTensor(),
+                                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
                                ])
 
-dataset = NatureDatasetSingle(train=True, augmentation=True, preprocessing_fn=preprocess_input)
+dataset = NatureDataset(train=True, augmentation=True, preprocessing_fn=transform)
 print('Dataset size:', len(dataset))
 partition_point = int(len(dataset)*0.12) 
 trainset, valset  = random_split(dataset, [len(dataset) - partition_point, partition_point])
 data_loader = {"train": DataLoader(trainset , shuffle=True , batch_size=8),
                 "val": DataLoader(valset, shuffle=True, batch_size=8)}
 
-device = torch.device("cuda" if torch.cuda.is_available else "cpu")
-model = torchvision.models.resnet50(pretrained=True)
+model = torchvision.models.resnet50(pretrained=True) # load the pretrained model
+num_features = model.fc.in_features # get the no of on_features in last Linear unit
+print("Number of features is the last Linear unit", num_features)
+## freeze the entire convolution base
+for param in model.parameters():
+  param.requires_grad_(False)
+
+def create_head(num_features, number_classes, dropout_prob=0.5, activation_func=nn.ReLU):
+  features_lst = [num_features , num_features//2 , num_features//4]
+  layers = []
+  for in_f, out_f in zip(features_lst[:-1] , features_lst[1:]):
+    layers.append(nn.Linear(in_f , out_f))
+    layers.append(activation_func())
+    layers.append(nn.BatchNorm1d(out_f))
+    if dropout_prob !=0 : layers.append(nn.Dropout(dropout_prob))
+  layers.append(nn.Linear(features_lst[-1] , number_classes))
+  return nn.Sequential(*layers)
+
 NUM_CLASSES = 5
-num_ftrs = model.fc.in_features
-print('last layer number of features:', num_ftrs)
-model.fc = torch.nn.Linear(num_ftrs, NUM_CLASSES)
+top_head = create_head(num_features , NUM_CLASSES) # because ten classes
+model.fc = top_head # replace the fully connected layer
+device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 model = model.to(device)
 print(model)
 
