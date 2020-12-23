@@ -9,26 +9,25 @@ from torchvision import datasets, models, transforms
 import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.utils.data import Dataset, DataLoader, random_split
-import json
 from PIL import Image
 from scipy.io import loadmat # Load MATLAB file.
-from sklearn.metrics import f1_score, roc_auc_score, accuracy_score
+from sklearn.metrics import f1_score, roc_auc_score
 
 print(f'PyTorch version: {torch.__version__}')
 print(f'torchvision version: {torchvision.__version__}')
 
 # Dataset download and extraction steps
-# Multi label Dataset detail: http://www.lamda.nju.edu.cn/data_MIMLimage.ashx
+# Multi label dataset details: http://www.lamda.nju.edu.cn/data_MIMLimage.ashx
 # Dataset has two parts (1) "original" part has images (2) "processed" part has labels
-#  wget http://www.lamda.nju.edu.cn/files/miml-image-data.rar
-#  unrar e content/miml-image-data.rar
-#  mkdir content/original_images
-#  unrar e original.rar content/original_images
-#  unrar e processed.rar
+# wget http://www.lamda.nju.edu.cn/files/miml-image-data.rar
+# unrar e content/miml-image-data.rar
+# mkdir content/original_images
+# unrar e original.rar content/original_images
+# unrar e processed.rar
 
 content_root = '/home/auro/tf-multi-label-example/content/'
     
-# The "processesed" part 
+# Read the "processed" part for class names and class labels 
 processed_mat = loadmat(os.path.join(content_root, 'miml data.mat'))
 
 class_labels = []
@@ -36,6 +35,7 @@ for c in processed_mat['class_name']:  # get the name of each class
     class_labels.append(c[0][0])
 nb_classes = len(class_labels)
 print('class labels:', class_labels)  # ['desert', 'mountains', 'sea', 'sunset', 'trees']
+
 # If target(:, i)' equals [1, -1, -1, 1, -1], it means:
 # i-th image belongs to the 1st and 4th classes but do not belong to the 2nd, 3rd and 5th classes
 labels = copy.deepcopy(processed_mat['targets'].T)   
@@ -56,13 +56,14 @@ data_df[class_labels] = np.array(labels)
 
 class SceneDataset(Dataset):
   def __init__(self, df, transforms=None):
+    super().__init__()
     self.df = df
     self.transforms = transforms
     
   def __getitem__(self, idx):
-    d = self.df.iloc[idx]
-    image = Image.open(d['filename']).convert("RGB")
-    label = torch.tensor(d[1:].tolist(), dtype=torch.float32)
+    record = self.df.iloc[idx]
+    image = Image.open(record['filename']).convert("RGB")
+    label = torch.tensor(record[1:].tolist(), dtype=torch.float32)
     
     if self.transforms is not None:
       image = self.transforms(image)
@@ -73,13 +74,10 @@ class SceneDataset(Dataset):
 
 batch_size = 128
 transforms_list = transforms.Compose([transforms.Resize((224, 224)),
-                                # transforms.RandomRotation(30),
-                                # transforms.RandomCrop((224, 224)),
-                                # transforms.RandomAffine(0),
                                 transforms.ToTensor(),
                                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
-split_ratio = 0.2
+split_ratio = 0.3
 dataset = SceneDataset(data_df, transforms_list)
 split_point = int(len(dataset) * split_ratio)
 trainset, valset = random_split(dataset, [len(dataset) - split_point, split_point])
@@ -97,7 +95,6 @@ class ExtendedResNetModel(nn.Module):
       param.requires_grad_(False)
 
     head = self._create_head(nb_features_last, nb_classes, dropout_prob, activation_func)
-    # head = nn.Linear(nb_features_last, nb_classes)
     self.rn50_features.fc = head  # attach head
     # print(self.rn50_features)
 
