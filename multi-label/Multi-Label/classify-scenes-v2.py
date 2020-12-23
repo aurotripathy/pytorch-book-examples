@@ -41,18 +41,19 @@ print('class labels:', class_labels)  # ['desert', 'mountains', 'sea', 'sunset',
 labels = copy.deepcopy(processed_mat['targets'].T)   
 labels[labels == -1] = 0  # convert to range [0, 1] from [-1, 1]
 
+# setup a pandas dataframe with file location and associated (multi) labels (below)
+#                                                      filename desert mountains sea sunset trees
+# 0     /home/auro/tf-multi-label-example/content/orig.../1.jpg      1         0   0      0     0
+# 1     /home/auro/tf-multi-label-example/content/orig.../2.jpg      1         0   0      0     0
+# 2     /home/auro/tf-multi-label-example/content/orig.../3.jpg      1         0   0      0     0
+# 3     /home/auro/tf-multi-label-example/content/orig.../4.jpg      1         1   0      0     0
+
 data_df = pd.DataFrame(columns=['filename'] + class_labels)  # create empty dataframe 
 filenames = os.listdir(os.path.join(content_root, "original_images/"))
 data_df['filename'] = np.array(sorted(list(map(lambda x:int(Path(x).stem),np.array(filenames)))))
 data_df['filename'] = data_df['filename'].apply(lambda x:os.path.join(content_root, 'original_images/') + str(x) + '.jpg')
 data_df[class_labels] = np.array(labels)
 
-# data_df content format
-#                                                      filename desert mountains sea sunset trees
-# 0     /home/auro/tf-multi-label-example/content/orig.../1.jpg      1         0   0      0     0
-# 1     /home/auro/tf-multi-label-example/content/orig.../2.jpg      1         0   0      0     0
-# 2     /home/auro/tf-multi-label-example/content/orig.../3.jpg      1         0   0      0     0
-# 3     /home/auro/tf-multi-label-example/content/orig.../4.jpg      1         1   0      0     0
 
 class SceneDataset(Dataset):
   def __init__(self, df, transforms=None):
