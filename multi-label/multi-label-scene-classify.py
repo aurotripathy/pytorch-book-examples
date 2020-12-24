@@ -18,6 +18,7 @@ from sklearn.metrics import f1_score, roc_auc_score
 print(f'PyTorch version: {torch.__version__}')
 print(f'torchvision version: {torchvision.__version__}')
 
+
 class SceneDataset(Dataset):
     def __init__(self, df, transforms=None):
         super().__init__()
@@ -36,6 +37,7 @@ class SceneDataset(Dataset):
     def __len__(self):
         return len(self.df)
 
+
 class ExtendedResNetModel(nn.Module):
     """ Extend ResNet with three new fully connected layers and attach them as a head to a ResNet50 trunk"""
 
@@ -44,23 +46,22 @@ class ExtendedResNetModel(nn.Module):
         # load the pretrained model as feafures
         self.rn50_features = models.resnet50(pretrained=True)
         # get the nb of in_features in last Linear unit
-        nb_features_last = self.rn50_features.fc.in_features
+        nb_in_features_last = self.rn50_features.fc.in_features
         for param in self.rn50_features.parameters():
             param.requires_grad_(False)
 
-        head = self._create_head(
-            nb_features_last, nb_classes, dropout_prob, activation_func)
+        head = self._create_head(nb_in_features_last, nb_classes,
+                                 dropout_prob, activation_func)
         self.rn50_features.fc = head  # attach head
         # print(self.rn50_features)
 
-    def _create_head(self, num_features, nb_classes, dropout_prob=0.3, activation_func=nn.ReLU):
-        features_lst = [num_features, num_features//2, num_features//4]
+    def _create_head(self, nb_features, nb_classes, dropout_prob=0.3, activation_func=nn.ReLU):
+        features_lst = [nb_features, nb_features//2, nb_features//4]
         layers = []
         for in_f, out_f in zip(features_lst[:-1], features_lst[1:]):
             layers.append(nn.Linear(in_f, out_f))
             layers.append(nn.BatchNorm1d(out_f))
             layers.append(activation_func())
-            # layers.append(nn.BatchNorm1d(out_f))
             if dropout_prob != 0:
                 layers.append(nn.Dropout(dropout_prob))
         layers.append(nn.Linear(features_lst[-1], nb_classes))
@@ -69,6 +70,7 @@ class ExtendedResNetModel(nn.Module):
     def forward(self, x):
         x = self.rn50_features(x)
         return x
+
 
 def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
 
@@ -84,7 +86,6 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
             running_loss = 0.0
             running_f1_score = 0.0
             running_roc_auc_score = 0.0
-            running_accuracy_score = 0.0
 
             for data, target in data_loader[phase]:
                 data, target = data.to(device), target.to(device)
@@ -121,6 +122,7 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
         print(result)
 
 # To download the dataset, see accompanying dataset_download_steps.txt file
+
 
 dataset_root = '.'
 
@@ -187,7 +189,7 @@ model = model.to(device)
 
 criterion = nn.BCEWithLogitsLoss(pos_weight=positive_weights)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-sgdr_partial = lr_scheduler.CosineAnnealingLR(
-    optimizer, T_max=5, eta_min=0.005)
+sgdr_cos_anneal = lr_scheduler.CosineAnnealingLR(optimizer,  # set learning rate schedule
+                                                 T_max=5, eta_min=0.005)
 
-train(model, dataloader, criterion, optimizer, sgdr_partial, nb_epochs=10)
+train(model, dataloader, criterion, optimizer, sgdr_cos_anneal, nb_epochs=10)
