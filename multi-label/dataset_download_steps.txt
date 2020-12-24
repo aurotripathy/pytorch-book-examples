@@ -1,0 +1,8 @@
+Dataset download and extraction steps
+Multi label dataset details: http://www.lamda.nju.edu.cn/data_MIMLimage.ashx
+Dataset has two parts (1) "original" part has the 2000 images (2) "processed" part has labels
+wget http://www.lamda.nju.edu.cn/files/miml-image-data.rar
+unrar e miml-image-data.rar # gives two rar files
+mkdir original_images
+unrar e original.rar original_images
+unrar e processed.rar  # produces miml data.mat
