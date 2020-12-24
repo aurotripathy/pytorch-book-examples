@@ -6,3 +6,4 @@ unrar e miml-image-data.rar # gives two rar files
 mkdir original_images
 unrar e original.rar original_images
 unrar e processed.rar  # produces miml data.mat
+rm *.rar  # optionally delete the .rar files
