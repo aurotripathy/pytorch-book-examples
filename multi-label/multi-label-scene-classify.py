@@ -141,12 +141,13 @@ print('class labels:', class_labels)
 labels = copy.deepcopy(processed_mat['targets'].T)
 labels[labels == -1] = 0  # convert to range [0, 1] from [-1, 1]
 
-# setup a pandas dataframe with file location and associated (multi) labels (below)
-#                                                      filename desert mountains sea sunset trees
-# 0     /home/auro/tf-multi-label-example/content/orig.../1.jpg      1         0   0      0     0
-# 1     /home/auro/tf-multi-label-example/content/orig.../2.jpg      1         0   0      0     0
-# 2     /home/auro/tf-multi-label-example/content/orig.../3.jpg      1         0   0      0     0
-# 3     /home/auro/tf-multi-label-example/content/orig.../4.jpg      1         1   0      0     0
+# setup a pandas dataframe with file location and associated (multi) labels as below
+#                   filename desert mountains sea sunset trees
+# 0  ./original_images/1.jpg      1         0   0      0     0
+# 1  ./original_images/2.jpg      1         0   0      0     0
+# 2  ./original_images/3.jpg      1         0   0      0     0
+# 3  ./original_images/4.jpg      1         1   0      0     0
+# 4  ./original_images/5.jpg      1         0   0      0     0
 
 # create empty dataframe
 data_df = pd.DataFrame(columns=['filename'] + class_labels)
@@ -160,7 +161,8 @@ data_df[class_labels] = np.array(labels)
 batch_size = 128
 transforms_list = transforms.Compose([transforms.Resize((224, 224)),
                                       transforms.ToTensor(),
-                                      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+                                      transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                      std=[0.229, 0.224, 0.225])])
 
 split_ratio = 0.3
 dataset = SceneDataset(data_df, transforms_list)
