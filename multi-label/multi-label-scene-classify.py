@@ -18,49 +18,6 @@ from sklearn.metrics import f1_score, roc_auc_score
 print(f'PyTorch version: {torch.__version__}')
 print(f'torchvision version: {torchvision.__version__}')
 
-# Dataset download and extraction steps
-# Multi label dataset details: http://www.lamda.nju.edu.cn/data_MIMLimage.ashx
-# Dataset has two parts (1) "original" part has the 2000 images (2) "processed" part has labels
-# wget http://www.lamda.nju.edu.cn/files/miml-image-data.rar
-# unrar e miml-image-data.rar # gives two rar files
-# mkdir original_images
-# unrar e original.rar original_images
-# unrar e processed.rar  # produces miml data.mat
-
-dataset_root = '.'
-
-# Read the "processed" part for class names and class labels
-processed_mat = loadmat(os.path.join(dataset_root, 'miml data.mat'))
-
-class_labels = []
-for c in processed_mat['class_name']:  # get the name of each class
-    class_labels.append(c[0][0])
-nb_classes = len(class_labels)
-# ['desert', 'mountains', 'sea', 'sunset', 'trees']
-print('class labels:', class_labels)
-
-# If label for ith images equals [1, -1, -1, 1, -1], it means:
-# i-th image belongs to the 1st & 4th class but does not belong to the 2nd, 3rd &  5th classes
-labels = copy.deepcopy(processed_mat['targets'].T)
-labels[labels == -1] = 0  # convert to range [0, 1] from [-1, 1]
-
-# setup a pandas dataframe with file location and associated (multi) labels (below)
-#                                                      filename desert mountains sea sunset trees
-# 0     /home/auro/tf-multi-label-example/content/orig.../1.jpg      1         0   0      0     0
-# 1     /home/auro/tf-multi-label-example/content/orig.../2.jpg      1         0   0      0     0
-# 2     /home/auro/tf-multi-label-example/content/orig.../3.jpg      1         0   0      0     0
-# 3     /home/auro/tf-multi-label-example/content/orig.../4.jpg      1         1   0      0     0
-
-# create empty dataframe
-data_df = pd.DataFrame(columns=['filename'] + class_labels)
-filenames = os.listdir(os.path.join(dataset_root, "original_images/"))
-data_df['filename'] = np.array(
-    sorted(list(map(lambda x: int(Path(x).stem), np.array(filenames)))))
-data_df['filename'] = data_df['filename'].apply(
-    lambda x: os.path.join(dataset_root, 'original_images/') + str(x) + '.jpg')
-data_df[class_labels] = np.array(labels)
-
-
 class SceneDataset(Dataset):
     def __init__(self, df, transforms=None):
         super().__init__()
@@ -78,22 +35,6 @@ class SceneDataset(Dataset):
 
     def __len__(self):
         return len(self.df)
-
-
-batch_size = 128
-transforms_list = transforms.Compose([transforms.Resize((224, 224)),
-                                      transforms.ToTensor(),
-                                      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-
-split_ratio = 0.3
-dataset = SceneDataset(data_df, transforms_list)
-split_point = int(len(dataset) * split_ratio)
-trainset, valset = random_split(
-    dataset, [len(dataset) - split_point, split_point])
-print(f"Train set size: {len(trainset)}; Val set size: {len(valset)}")
-dataloader = {"train": DataLoader(trainset, shuffle=True, batch_size=batch_size),
-              "val": DataLoader(valset, shuffle=True, batch_size=batch_size)}
-
 
 class ExtendedResNetModel(nn.Module):
     """ Extend ResNet with three new fully connected layers and attach them as a head to a ResNet50 trunk"""
@@ -128,29 +69,6 @@ class ExtendedResNetModel(nn.Module):
     def forward(self, x):
         x = self.rn50_features(x)
         return x
-
-
-positive_weights = []
-for c in range(nb_classes):
-    positive_cnt = float(sum([x[1][c] == 1 for x in trainset]))
-    negative_cnt = float(sum([x[1][c] == 0 for x in trainset]))
-    pos_weight = negative_cnt / positive_cnt
-    positive_weights.append(pos_weight)
-
-positive_weights = torch.FloatTensor(positive_weights).to('cuda')
-print('positive weights', positive_weights)
-
-torch.manual_seed(0)
-model = ExtendedResNetModel(nb_classes=nb_classes)
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = model.to(device)
-
-criterion = nn.BCEWithLogitsLoss(pos_weight=positive_weights)
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-sgdr_partial = lr_scheduler.CosineAnnealingLR(
-    optimizer, T_max=5, eta_min=0.005)
-
 
 def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
 
@@ -202,5 +120,74 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
                           f'F1-Score: {epoch_f1_score:.4f} AUC: {epoch_roc_auc_score:.4f}')
         print(result)
 
+# To download the dataset, see accompanying dataset_download_steps.txt file
+
+dataset_root = '.'
+
+# Read the "processed" part for class names and class labels
+processed_mat = loadmat(os.path.join(dataset_root, 'miml data.mat'))
+
+class_labels = []
+for c in processed_mat['class_name']:  # get the name of each class
+    class_labels.append(c[0][0])
+nb_classes = len(class_labels)
+# ['desert', 'mountains', 'sea', 'sunset', 'trees']
+print('class labels:', class_labels)
+
+# If label for ith images equals [1, -1, -1, 1, -1], it means:
+# i-th image belongs to the 1st & 4th class but does not belong to the 2nd, 3rd &  5th classes
+labels = copy.deepcopy(processed_mat['targets'].T)
+labels[labels == -1] = 0  # convert to range [0, 1] from [-1, 1]
+
+# setup a pandas dataframe with file location and associated (multi) labels (below)
+#                                                      filename desert mountains sea sunset trees
+# 0     /home/auro/tf-multi-label-example/content/orig.../1.jpg      1         0   0      0     0
+# 1     /home/auro/tf-multi-label-example/content/orig.../2.jpg      1         0   0      0     0
+# 2     /home/auro/tf-multi-label-example/content/orig.../3.jpg      1         0   0      0     0
+# 3     /home/auro/tf-multi-label-example/content/orig.../4.jpg      1         1   0      0     0
+
+# create empty dataframe
+data_df = pd.DataFrame(columns=['filename'] + class_labels)
+filenames = os.listdir(os.path.join(dataset_root, "original_images/"))
+data_df['filename'] = np.array(
+    sorted(list(map(lambda x: int(Path(x).stem), np.array(filenames)))))
+data_df['filename'] = data_df['filename'].apply(
+    lambda x: os.path.join(dataset_root, 'original_images/') + str(x) + '.jpg')
+data_df[class_labels] = np.array(labels)
+
+batch_size = 128
+transforms_list = transforms.Compose([transforms.Resize((224, 224)),
+                                      transforms.ToTensor(),
+                                      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+
+split_ratio = 0.3
+dataset = SceneDataset(data_df, transforms_list)
+split_point = int(len(dataset) * split_ratio)
+trainset, valset = random_split(
+    dataset, [len(dataset) - split_point, split_point])
+print(f"Train set size: {len(trainset)}; Val set size: {len(valset)}")
+dataloader = {"train": DataLoader(trainset, shuffle=True, batch_size=batch_size),
+              "val": DataLoader(valset, shuffle=True, batch_size=batch_size)}
+
+positive_weights = []
+for c in range(nb_classes):
+    positive_cnt = float(sum([x[1][c] == 1 for x in trainset]))
+    negative_cnt = float(sum([x[1][c] == 0 for x in trainset]))
+    pos_weight = negative_cnt / positive_cnt
+    positive_weights.append(pos_weight)
+
+positive_weights = torch.FloatTensor(positive_weights).to('cuda')
+print('positive weights', positive_weights)
+
+torch.manual_seed(0)
+model = ExtendedResNetModel(nb_classes=nb_classes)
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = model.to(device)
+
+criterion = nn.BCEWithLogitsLoss(pos_weight=positive_weights)
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+sgdr_partial = lr_scheduler.CosineAnnealingLR(
+    optimizer, T_max=5, eta_min=0.005)
 
 train(model, dataloader, criterion, optimizer, sgdr_partial, nb_epochs=10)
