@@ -122,8 +122,6 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
         print(result)
 
 # To download the dataset, see accompanying dataset_download_steps.txt file
-
-
 dataset_root = '.'
 
 # Read the "processed" part for class names and class labels
@@ -133,10 +131,9 @@ class_labels = []
 for c in processed_mat['class_name']:  # get the name of each class
     class_labels.append(c[0][0])
 nb_classes = len(class_labels)
-# ['desert', 'mountains', 'sea', 'sunset', 'trees']
-print('class labels:', class_labels)
+print('class labels:', class_labels)  # ['desert', 'mountains', 'sea', 'sunset', 'trees']
 
-# If label for ith images equals [1, -1, -1, 1, -1], it means:
+# If multi-class label for ith images equals [1, -1, -1, 1, -1], it means:
 # i-th image belongs to the 1st & 4th class but does not belong to the 2nd, 3rd &  5th classes
 labels = copy.deepcopy(processed_mat['targets'].T)
 labels[labels == -1] = 0  # convert to range [0, 1] from [-1, 1]
@@ -158,7 +155,6 @@ data_df['filename'] = data_df['filename'].apply(
     lambda x: os.path.join(dataset_root, 'original_images/') + str(x) + '.jpg')
 data_df[class_labels] = np.array(labels)
 
-batch_size = 128
 transforms_list = transforms.Compose([transforms.Resize((224, 224)),
                                       transforms.ToTensor(),
                                       transforms.Normalize(mean=[0.485, 0.456, 0.406], 
@@ -168,8 +164,10 @@ split_ratio = 0.3
 dataset = SceneDataset(data_df, transforms_list)
 split_point = int(len(dataset) * split_ratio)
 trainset, valset = random_split(
-    dataset, [len(dataset) - split_point, split_point])
+    dataset, [len(dataset) - split_point, split_point], generator=torch.Generator().manual_seed(0))
 print(f"Train set size: {len(trainset)}; Val set size: {len(valset)}")
+
+batch_size = 128
 dataloader = {"train": DataLoader(trainset, shuffle=True, batch_size=batch_size),
               "val": DataLoader(valset, shuffle=True, batch_size=batch_size)}
 
