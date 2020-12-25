@@ -172,12 +172,11 @@ dataloader = {"train": DataLoader(trainset, shuffle=True, batch_size=batch_size)
               "val": DataLoader(valset, shuffle=True, batch_size=batch_size)}
 
 positive_weights = []
-for c in range(nb_classes):
-    positive_cnt = float(sum([x[1][c] == 1 for x in trainset]))
-    negative_cnt = float(sum([x[1][c] == 0 for x in trainset]))
-    pos_weight = negative_cnt / positive_cnt
+for cls in range(nb_classes):
+    positive_samples = float(sum([x[1][cls] == 1 for x in trainset]))
+    negative_samples = float(sum([x[1][cls] == 0 for x in trainset]))
+    pos_weight = negative_samples / positive_samples
     positive_weights.append(pos_weight)
-
 positive_weights = torch.FloatTensor(positive_weights).to('cuda')
 print('positive weights', positive_weights)
 
