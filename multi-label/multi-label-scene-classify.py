@@ -77,23 +77,23 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
     for epoch in range(nb_epochs):
         result = []
         for phase in ['train', 'val']:
-            if phase == "train":  # put model in training mode
-                model.train()
-            else:  # put model in validation mode
-                model.eval()
+            if phase == "train":  
+                model.train()  # put model in training mode
+            else:  
+                model.eval()  # # put model in validation mode
 
             # Track for each epoch
             running_loss = 0.0
             running_f1_score = 0.0
             running_roc_auc_score = 0.0
 
-            for data, target in data_loader[phase]:
-                data, target = data.to(device), target.to(device)
+            for data, targets in data_loader[phase]:
+                data, targets = data.to(device), targets.to(device)
                 with torch.set_grad_enabled(phase == "train"):
-                    output = model(data)  # forward pass
-                    loss = criterion(output, target)
-                    preds = torch.sigmoid(output).data > 0.5
-                    # preds = output.data > 0.5
+                    outputs = model(data)  # forward pass
+                    loss = criterion(outputs, targets)
+                    # preds = torch.sigmoid(output).data > 0.5
+                    preds = outputs.data > 0.5
                     preds = preds.to(torch.float32)
 
                     if phase == "train":
@@ -102,15 +102,13 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
                         scheduler.step()
                         optimizer.zero_grad()
 
-                running_loss += loss.item() * data.size(0)
-                running_f1_score += f1_score(target.to("cpu").to(torch.int).numpy(),
-                                             preds.to("cpu").to(
-                                                 torch.int).numpy(),
-                                             average="samples") * data.size(0)
-                running_roc_auc_score += roc_auc_score(target.to("cpu").to(torch.int).numpy(),
-                                                       preds.to("cpu").to(
-                                                           torch.int).numpy(),
-                                                       average="samples") * data.size(0)
+                running_loss += loss.item() * len(data)
+                running_f1_score += f1_score(targets.to("cpu").to(torch.int).numpy(),
+                                             preds.to("cpu").to(torch.int).numpy(),
+                                             average="samples") * len(data)
+                running_roc_auc_score += roc_auc_score(targets.to("cpu").to(torch.int).numpy(),
+                                                       preds.to("cpu").to(torch.int).numpy(),
+                                                       average="samples") * len(data)
 
             epoch_loss = running_loss / len(data_loader[phase].dataset)
             epoch_f1_score = running_f1_score / len(data_loader[phase].dataset)
@@ -121,24 +119,23 @@ def train(model, data_loader, criterion, optimizer, scheduler, nb_epochs=5):
                           f'F1-Score: {epoch_f1_score:.4f} AUC: {epoch_roc_auc_score:.4f}')
         print(result)
 
-# To download the dataset, see accompanying dataset_download_steps.txt file
+# To download the dataset, see accompanying file, dataset_download_steps.txt.
 dataset_root = '.'
 
 # Read the "processed" part for class names and class labels
 processed_mat = loadmat(os.path.join(dataset_root, 'miml data.mat'))
-
 class_labels = []
 for c in processed_mat['class_name']:  # get the name of each class
     class_labels.append(c[0][0])
 nb_classes = len(class_labels)
 print('class labels:', class_labels)  # ['desert', 'mountains', 'sea', 'sunset', 'trees']
 
-# If multi-class label for ith images equals [1, -1, -1, 1, -1], it means:
+# Read the labels. If multi-class label for ith images equals [1, -1, -1, 1, -1], it means:
 # i-th image belongs to the 1st & 4th class but does not belong to the 2nd, 3rd &  5th classes
 labels = copy.deepcopy(processed_mat['targets'].T)
 labels[labels == -1] = 0  # convert to range [0, 1] from [-1, 1]
 
-# setup a pandas dataframe with file location and associated (multi) labels as below
+# Setup a pandas dataframe with file location and associated (multi) labels as below
 #                   filename desert mountains sea sunset trees
 # 0  ./original_images/1.jpg      1         0   0      0     0
 # 1  ./original_images/2.jpg      1         0   0      0     0
@@ -146,7 +143,7 @@ labels[labels == -1] = 0  # convert to range [0, 1] from [-1, 1]
 # 3  ./original_images/4.jpg      1         1   0      0     0
 # 4  ./original_images/5.jpg      1         0   0      0     0
 
-# create empty dataframe
+# create empty dataframe with columns, [filename desert mountains sea sunset tree]
 data_df = pd.DataFrame(columns=['filename'] + class_labels)
 filenames = os.listdir(os.path.join(dataset_root, "original_images/"))
 data_df['filename'] = np.array(
@@ -173,12 +170,12 @@ dataloader = {"train": DataLoader(trainset, shuffle=True, batch_size=batch_size)
 
 positive_weights = []
 for cls in range(nb_classes):
-    positive_samples = float(sum([x[1][cls] == 1 for x in trainset]))
-    negative_samples = float(sum([x[1][cls] == 0 for x in trainset]))
+    positive_samples = float(sum([record[1][cls] == 1 for record in trainset]))
+    negative_samples = float(sum([record[1][cls] == 0 for record in trainset]))
     pos_weight = negative_samples / positive_samples
     positive_weights.append(pos_weight)
 positive_weights = torch.FloatTensor(positive_weights).to('cuda')
-print('positive weights', positive_weights)
+print('Negative samples to positive samples ratio per class:', positive_weights)
 
 torch.manual_seed(0)
 model = ExtendedResNetModel(nb_classes=nb_classes)
@@ -188,7 +185,7 @@ model = model.to(device)
 
 criterion = nn.BCEWithLogitsLoss(pos_weight=positive_weights)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-sgdr_cos_anneal = lr_scheduler.CosineAnnealingLR(optimizer,  # set learning rate schedule
+sgdr_cos_anneal_sched = lr_scheduler.CosineAnnealingLR(optimizer,  # set learning rate schedule
                                                  T_max=5, eta_min=0.005)
 
-train(model, dataloader, criterion, optimizer, sgdr_cos_anneal, nb_epochs=10)
+train(model, dataloader, criterion, optimizer, sgdr_cos_anneal_sched, nb_epochs=10)
