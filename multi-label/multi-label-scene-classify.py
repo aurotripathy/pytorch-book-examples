@@ -25,6 +25,10 @@ class SceneDataset(Dataset):
         self.df = df
         self.transforms = transforms
 
+    def get_labels(self, idx):
+        record = self.df.iloc[idx]
+        return record[1:].tolist()
+        
     def __getitem__(self, idx):
         record = self.df.iloc[idx]
         image = Image.open(record['filename']).convert("RGB")
@@ -170,8 +174,8 @@ dataloader = {"train": DataLoader(trainset, shuffle=True, batch_size=batch_size)
 
 positive_weights = []
 for cls in range(nb_classes):
-    positive_samples = float(sum([record[1][cls] == 1 for record in trainset]))
-    negative_samples = float(sum([record[1][cls] == 0 for record in trainset]))
+    positive_samples = float(sum([dataset.get_labels(idx)[cls] == 1 for idx in trainset.indices]))
+    negative_samples = float(sum([dataset.get_labels(idx)[cls] == 0 for idx in trainset.indices]))
     pos_weight = negative_samples / positive_samples
     positive_weights.append(pos_weight)
 positive_weights = torch.FloatTensor(positive_weights).to('cuda')
