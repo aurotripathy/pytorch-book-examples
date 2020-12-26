@@ -28,7 +28,7 @@ class SceneDataset(Dataset):
     def get_labels(self, idx):
         record = self.df.iloc[idx]
         return record[1:].tolist()
-        
+
     def __getitem__(self, idx):
         record = self.df.iloc[idx]
         image = Image.open(record['filename']).convert("RGB")
@@ -179,7 +179,7 @@ for cls in range(nb_classes):
     pos_weight = negative_samples / positive_samples
     positive_weights.append(pos_weight)
 positive_weights = torch.FloatTensor(positive_weights).to('cuda')
-print('Negative samples to positive samples ratio per class:', positive_weights)
+print('Ratio of Negative samples to positive samples per class:', positive_weights)
 
 torch.manual_seed(0)
 model = ExtendedResNetModel(nb_classes=nb_classes)
