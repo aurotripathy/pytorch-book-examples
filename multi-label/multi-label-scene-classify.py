@@ -20,6 +20,10 @@ print(f'torchvision version: {torchvision.__version__}')
 
 
 class SceneDataset(Dataset):
+    """ Subclass from Dataset and overide __get_item__ for data-specific indexing
+     and __len__ to get data-specific length.
+     We also add a new method, get_labels(index) to avoid going thru an expensive __getitem__"""
+     
     def __init__(self, df, transforms=None):
         super().__init__()
         self.df = df
